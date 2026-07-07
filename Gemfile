@@ -5,7 +5,20 @@
   # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 
   # Use sqlite3 as the database for Active Record
+  
+  
+  group :development, :test do
   gem "sqlite3", ">= 2.1"
+
+  gem "debug", platforms: %i[mri windows], require: "debug/prelude"
+  gem "bundler-audit", require: false
+  gem "brakeman", require: false
+  gem "rubocop-rails-omakase", require: false
+end
+
+group :production do
+  gem "pg"
+end
   # Use the Puma web server [https://github.com/puma/puma]
   gem "puma", ">= 5.0"
   # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
