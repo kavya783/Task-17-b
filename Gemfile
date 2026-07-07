@@ -46,7 +46,9 @@ gem "sassc-rails"
 gem "tzinfo-data", platforms: %i[windows jruby]
 
 # Solid Queue / Cache / Cable
-
+gem "solid_cache"
+gem "solid_queue"
+gem "solid_cable"
 
 # Environment variables
 gem "dotenv-rails"
