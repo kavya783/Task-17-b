@@ -1,7 +1,6 @@
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    origins "http://localhost:3001" ,
-    "https://task-17-wysf.onrender.com/"  # React port
+    origins "*"  # React port
 
     resource "*",
       headers: :any,
