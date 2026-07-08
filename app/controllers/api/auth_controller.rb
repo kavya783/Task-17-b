@@ -17,21 +17,24 @@ module Api
       end
     end
 
-    def login
-      user = User.find_by(email: params[:email])
+  def login
+  user = User.find_by(email: params[:email])
 
-      if user&.authenticate(params[:password])
-        render json: {
-          message: "Login success",
-          user: user,
-          role: user.role
-        }, status: :ok
-      else
-        render json: {
-          error: "Invalid email or password"
-        }, status: :unauthorized
-      end
-    end
+  Rails.logger.info "User Found: #{user.present?}"
+  Rails.logger.info "Authenticate: #{user&.authenticate(params[:password]).present?}"
+
+  if user&.authenticate(params[:password])
+    render json: {
+      message: "Login success",
+      user: user,
+      role: user.role
+    }, status: :ok
+  else
+    render json: {
+      error: "Invalid email or password"
+    }, status: :unauthorized
+  end
+end
 
     private
 
