@@ -9,23 +9,33 @@ class Api::LeavesController < ApplicationController
     render json: leave
   end
 
-  def create
-    leave = Leave.new(leave_params)
+ def create
+  leave = Leave.new(leave_params)
 
-    if leave.save
-      render json: leave, status: :created
-    else
-      render json: { errors: leave.errors.full_messages }, status: :unprocessable_entity
-    end
+  if leave.save
+    render json: {
+      message: "Leave Applied Successfully",
+      leave: leave
+    }, status: :created
+  else
+    render json: {
+      message: leave.errors.full_messages.join(", ")
+    }, status: :unprocessable_entity
   end
+end
 
- def update
+def update
   leave = Leave.find(params[:id])
 
   if leave.update(leave_params)
-    render json: leave
+    render json: {
+      message: "Leave Updated Successfully",
+      leave: leave
+    }
   else
-    render json: { errors: leave.errors.full_messages }, status: :unprocessable_entity
+    render json: {
+      message: leave.errors.full_messages.join(", ")
+    }, status: :unprocessable_entity
   end
 end
 

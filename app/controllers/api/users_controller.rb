@@ -13,16 +13,21 @@ module Api
   }
 end
 
-    def create
+   def create
   Rails.logger.info "PARAMS: #{params.inspect}"
   Rails.logger.info "PROFILE IMAGE: #{params[:profile_image].inspect}"
 
   user = User.new(user_params)
-ActiveStorage::Attachment.count
+
   if user.save
-    render json: user, status: :created
+    render json: {
+      message: "Employee Added Successfully",
+      user: user
+    }, status: :created
   else
-    render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
+    render json: {
+      message: user.errors.full_messages.join(", ")
+    }, status: :unprocessable_entity
   end
 end
     def show
@@ -33,9 +38,14 @@ def update
   user = User.find(params[:id])
 
   if user.update(user_params)
-    render json: user
+    render json: {
+      message: "Employee Updated Successfully",
+      user: user
+    }
   else
-    render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
+    render json: {
+      message: user.errors.full_messages.join(", ")
+    }, status: :unprocessable_entity
   end
 end
     def destroy
