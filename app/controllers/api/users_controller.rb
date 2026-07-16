@@ -13,20 +13,19 @@ module Api
   }
 end
 
-   def create
-  Rails.logger.info "PARAMS: #{params.inspect}"
-  Rails.logger.info "PROFILE IMAGE: #{params[:profile_image].inspect}"
-
+  def create
   user = User.new(user_params)
 
   if user.save
     render json: {
-      message: "Employee Added Successfully",
-      user: user
+      message: "Employee added successfully",
+      user: user.as_json.merge(
+        profile_image_url: user.profile_image.attached? ? url_for(user.profile_image) : nil
+      )
     }, status: :created
   else
     render json: {
-      message: user.errors.full_messages.join(", ")
+      errors: user.errors.full_messages
     }, status: :unprocessable_entity
   end
 end
@@ -39,12 +38,28 @@ def update
 
   if user.update(user_params)
     render json: {
-      message: "Employee Updated Successfully",
-      user: user
+      message: "Employee updated successfully",
+      user: user.as_json.merge(
+        profile_image_url: user.profile_image.attached? ? url_for(user.profile_image) : nil
+      )
     }
   else
     render json: {
-      message: user.errors.full_messages.join(", ")
+      errors: user.errors.full_messages
+    }, status: :unprocessable_entity
+  end
+end
+def save_fcm_token
+  user = User.find(params[:user_id])
+
+  if user.update(fcm_token: params[:fcm_token])
+    render json: {
+      message: "FCM token saved successfully",
+      fcm_token: user.fcm_token
+    }
+  else
+    render json: {
+      errors: user.errors.full_messages
     }, status: :unprocessable_entity
   end
 end

@@ -20,22 +20,38 @@ module Api
   def login
   user = User.find_by(email: params[:email])
 
-  Rails.logger.info "User Found: #{user.present?}"
-  Rails.logger.info "Authenticate: #{user&.authenticate(params[:password]).present?}"
-
   if user&.authenticate(params[:password])
+
+    puts "LOGIN METHOD CALLED"
+    puts "ROLE: #{user.role}"
+
+    tokens = DeviceToken.where(user_id: user.id).pluck(:token)
+
+    puts "TOKENS: #{tokens.inspect}"
+
+    tokens.each do |token|
+      FirebaseNotificationService.send_notification(
+        token,
+        "Login Successful",
+        "Welcome #{user.role.capitalize}"
+      )
+    end
+
+    puts "NOTIFICATION METHOD FINISHED"
+
     render json: {
       message: "Login success",
+      user_id: user.id,
       user: user,
       role: user.role
     }, status: :ok
+
   else
     render json: {
       error: "Invalid email or password"
     }, status: :unauthorized
   end
 end
-
     private
 
     def user_params
