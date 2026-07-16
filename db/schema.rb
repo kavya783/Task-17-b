@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_06_122021) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_15_111328) do
   create_table "active_admin_comments", force: :cascade do |t|
     t.integer "author_id"
     t.string "author_type"
@@ -66,6 +66,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_122021) do
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
   end
 
+  create_table "device_tokens", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "token"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_device_tokens_on_user_id"
+  end
+
   create_table "employees", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "password_digest"
@@ -89,6 +97,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_122021) do
     t.string "address"
     t.datetime "created_at", null: false
     t.string "email"
+    t.string "fcm_token"
     t.string "name"
     t.string "password_digest"
     t.integer "role"
@@ -98,4 +107,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_122021) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "device_tokens", "users"
 end
