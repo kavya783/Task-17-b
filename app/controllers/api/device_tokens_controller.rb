@@ -4,10 +4,9 @@ class Api::DeviceTokensController < ApplicationController
   def create
 
     device_token = DeviceToken.find_or_initialize_by(
-      user_id: params[:user_id]
+      user_id: params[:user_id],
+      token: params[:token]
     )
-
-    device_token.token = params[:token]
 
     if device_token.save
 

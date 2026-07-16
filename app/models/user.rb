@@ -1,6 +1,7 @@
 class User < ApplicationRecord
   has_secure_password
      has_many :leaves, class_name: "Leave", foreign_key: "user_id"
+     has_many :device_tokens, dependent: :destroy
 has_one_attached :profile_image
   enum :role, {
     employee: 0,
