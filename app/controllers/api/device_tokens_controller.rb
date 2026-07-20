@@ -1,6 +1,11 @@
 class Api::DeviceTokensController < ApplicationController
   skip_before_action :verify_authenticity_token
 
+  def index
+    render json: DeviceToken.all
+  end
+
+
   def create
 
     device_token = DeviceToken.find_or_initialize_by(
@@ -24,4 +29,5 @@ class Api::DeviceTokensController < ApplicationController
     end
 
   end
+
 end
