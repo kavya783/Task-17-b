@@ -35,20 +35,20 @@ module Api
     end
 
 
-    device_token = DeviceToken.find_by(user_id: user.id)
+    # device_token = DeviceToken.find_by(user_id: user.id)
 
-    puts "TOKEN: #{device_token&.token}"
+    # puts "TOKEN: #{device_token&.token}"
 
 
-    if device_token
+    # if device_token
 
-      FirebaseNotificationService.send_notification(
-        device_token.token,
-        "Login Successful",
-        "Welcome #{user.role.capitalize}"
-      )
+    #   FirebaseNotificationService.send_notification(
+    #     device_token.token,
+    #     "Login Successful",
+    #     "Welcome #{user.role.capitalize}"
+    #   )
 
-    end
+    # end
 
 
     puts "NOTIFICATION METHOD FINISHED"
