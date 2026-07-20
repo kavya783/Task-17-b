@@ -18,47 +18,58 @@ module Api
     end
 
 
-    def login
-      user = User.find_by(email: params[:email])
+  def login
+  user = User.find_by(email: params[:email])
 
-      if user&.authenticate(params[:password])
+  if user&.authenticate(params[:password])
 
-        if params[:token].present?
-          DeviceToken.find_or_create_by(
-            user_id: user.id,
-            token: params[:token]
-          )
-        end
+    if params[:token].present?
 
-        tokens = DeviceToken.where(user_id: user.id).pluck(:token)
+      device_token = DeviceToken.find_or_initialize_by(
+        user_id: user.id
+      )
 
-        puts "TOKENS: #{tokens.inspect}"
+      device_token.token = params[:token]
+      device_token.save
 
-        tokens.each do |token|
-          FirebaseNotificationService.send_notification(
-            token,
-            "Login Successful",
-            "Welcome #{user.role.capitalize}"
-          )
-        end
-
-        puts "NOTIFICATION METHOD FINISHED"
-
-        render json: {
-          message: "Login success",
-          user_id: user.id,
-          user: user,
-          role: user.role
-        }, status: :ok
-
-      else
-
-        render json: {
-          error: "Invalid email or password"
-        }, status: :unauthorized
-
-      end
     end
+
+
+    device_token = DeviceToken.find_by(user_id: user.id)
+
+    puts "TOKEN: #{device_token&.token}"
+
+
+    if device_token
+
+      FirebaseNotificationService.send_notification(
+        device_token.token,
+        "Login Successful",
+        "Welcome #{user.role.capitalize}"
+      )
+
+    end
+
+
+    puts "NOTIFICATION METHOD FINISHED"
+
+
+    render json: {
+      message: "Login success",
+      user_id: user.id,
+      user: user,
+      role: user.role
+    }, status: :ok
+
+
+  else
+
+    render json: {
+      error: "Invalid email or password"
+    }, status: :unauthorized
+
+  end
+end
 
 
     private
