@@ -16,9 +16,17 @@ module Api
       device_token.token = params[:token]
 
       if device_token.save
-        render json: {
-          message: "Device token saved"
-        }
+
+  puts "SAVED TOKEN:"
+  puts device_token.token
+  puts "USER:"
+  puts device_token.user_id
+
+  render json:{
+    message:"Device token saved"
+  }
+
+end
       else
         render json: {
           errors: device_token.errors.full_messages
