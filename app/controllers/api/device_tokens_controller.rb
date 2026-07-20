@@ -2,16 +2,18 @@ class Api::DeviceTokensController < ApplicationController
   skip_before_action :verify_authenticity_token
 
   def create
+    
+    DeviceToken.where(user_id: params[:user_id]).delete_all
 
-    device_token = DeviceToken.find_or_initialize_by(
-      user_id: params[:user_id]
+    # save latest device token
+    device_token = DeviceToken.create(
+      user_id: params[:user_id],
+      token: params[:token]
     )
 
-    device_token.token = params[:token]
-
-    if device_token.save
+    if device_token.persisted?
       render json: {
-        message: "Device token saved"
+        message: "Latest device token saved"
       }
     else
       render json: {
@@ -20,5 +22,4 @@ class Api::DeviceTokensController < ApplicationController
     end
 
   end
-
 end
