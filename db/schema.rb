@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_15_111328) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_20_072528) do
   create_table "active_admin_comments", force: :cascade do |t|
     t.integer "author_id"
     t.string "author_type"
@@ -71,7 +71,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_15_111328) do
     t.string "token"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
-    t.index ["user_id"], name: "index_device_tokens_on_user_id"
+    t.index ["user_id"], name: "index_device_tokens_on_user_id", unique: true
   end
 
   create_table "employees", force: :cascade do |t|
