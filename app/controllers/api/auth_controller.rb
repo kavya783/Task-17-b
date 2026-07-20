@@ -23,16 +23,23 @@ module Api
 
   if user&.authenticate(params[:password])
 
-    if params[:token].present?
+   if params[:token].present?
 
-      device_token = DeviceToken.find_or_initialize_by(
-        user_id: user.id
-      )
+  # Remove this token from any previous user
+  DeviceToken.where(token: params[:token])
+             .where.not(user_id: user.id)
+             .delete_all
 
-      device_token.token = params[:token]
-      device_token.save
 
-    end
+  # Create or update current user's token
+  device_token = DeviceToken.find_or_initialize_by(
+    user_id: user.id
+  )
+
+  device_token.token = params[:token]
+  device_token.save!
+
+end
 
 
     # device_token = DeviceToken.find_by(user_id: user.id)
