@@ -65,55 +65,61 @@ class Api::LeavesController < ApplicationController
 
 
 
-  def update
-    leave = Leave.find(params[:id])
+ def update
+  leave = Leave.find(params[:id])
 
-    if leave.update(leave_params)
+  if leave.update(leave_params)
 
-      employee = User.find_by(email: leave.email)
+    employee = User.find_by(email: leave.email)
 
-      if employee
+    if employee
 
-        device_token = DeviceToken.find_by(user_id: employee.id)
+      device_token = DeviceToken.find_by(user_id: employee.id)
 
-        if device_token
+     puts "=========================="
+puts "EMPLOYEE ID: #{employee.id}"
+puts "DB TOKEN: #{device_token&.token}"
+puts "=========================="
+  
+      if device_token
 
-          if leave.status == "approved"
+        if leave.status == "approved"
 
-            FirebaseNotificationService.send_notification(
-              device_token.token,
-              "Leave Approved",
-              "Your leave request has been approved."
-            )
+          FirebaseNotificationService.send_notification(
+            device_token.token,
+            "Leave Approved",
+            "Your leave request has been approved."
+          )
 
+        elsif leave.status == "rejected"
 
-          elsif leave.status == "rejected"
-
-            FirebaseNotificationService.send_notification(
-              device_token.token,
-              "Leave Rejected",
-              "Your leave request has been rejected."
-            )
-
-          end
+          FirebaseNotificationService.send_notification(
+            device_token.token,
+            "Leave Rejected",
+            "Your leave request has been rejected."
+          )
 
         end
+
+      else
+        puts "NO DEVICE TOKEN FOUND"
       end
 
-
-      render json: {
-        message: "Leave updated successfully",
-        leave: leave
-      }
-
-    else
-
-      render json: {
-        errors: leave.errors.full_messages
-      }, status: :unprocessable_entity
-
     end
+
+    render json: {
+      message: "Leave updated successfully",
+      leave: leave
+    }
+
+  else
+
+    render json: {
+      errors: leave.errors.full_messages
+    }, status: :unprocessable_entity
+
   end
+end
 
 
 
