@@ -1,71 +1,83 @@
-class Api::LeavesController < ApplicationController
+  class Api::LeavesController < ApplicationController
+  before_action :authenticate_request
+    def index
+  if current_user.role == "hr"
 
-  def index
+    employee_emails = User.where(hr_id: current_user.id)
+                          .pluck(:email)
+
+    leaves = Leave.where(email: employee_emails)
+
+  elsif current_user.role == "employee"
+
+    leaves = Leave.where(email: current_user.email)
+
+  else
+
     leaves = Leave.all
 
-    render json: leaves.map { |leave|
-      {
-        id: leave.id,
-        employeename: leave.employeename,
-        email: leave.email,
-        leaveType: leave.leaveType,
-        from_date: leave.from_date,
-        to_date: leave.to_date,
-        reason: leave.reason,
-        status: leave.status,
-        profile_image_url: leave.profileImage
-      }
-    }
   end
 
-
-  def show
-    leave = Leave.find(params[:id])
-
-    render json: {
-      message: "Leave details fetched successfully",
-      leave: leave
+  render json: leaves.map { |leave|
+    {
+      id: leave.id,
+      employeename: leave.employeename,
+      email: leave.email,
+      leaveType: leave.leaveType,
+      from_date: leave.from_date,
+      to_date: leave.to_date,
+      reason: leave.reason,
+      status: leave.status,
+      profile_image_url: leave.profileImage
     }
-  end
-
-
-  def create
-    leave = Leave.new(leave_params)
-
-    if leave.save
-
-      hr = User.find_by(role: "hr")
-
-      if hr
-        device_token = DeviceToken.find_by(user_id: hr.id)
-
-        if device_token
-          FirebaseNotificationService.send_notification(
-            device_token.token,
-            "New Leave Request",
-            "#{leave.employeename} applied for leave"
-          )
-        end
-      end
-
+  }
+end
+    def show
+      leave = Leave.find(params[:id])
 
       render json: {
-        message: "Leave applied successfully",
+        message: "Leave details fetched successfully",
         leave: leave
-      }, status: :created
+      }
+    end
 
-    else
+def create
+  leave = Leave.new(leave_params)
 
-      render json: {
-        errors: leave.errors.full_messages
-      }, status: :unprocessable_entity
+  leave.hr_id = current_user.hr_id
+  leave.company_id = current_user.company_id
 
+  if leave.save
+
+   employee = User.find_by(email: leave.email)
+
+         if employee
+  hr = User.find_by(id: employee.hr_id)
+
+  if hr
+    tokens = DeviceToken.where(user_id: hr.id).pluck(:token)
+
+    tokens.each do |token|
+      FirebaseNotificationService.send_notification(
+        token,
+        "New Leave Request",
+        "#{leave.employeename} applied for leave"
+      )
     end
   end
+end
+    render json: {
+      message: "Leave applied successfully",
+      leave: leave
+    }, status: :created
 
-
-
- def update
+  else
+    render json: {
+      errors: leave.errors.full_messages
+    }, status: :unprocessable_entity
+  end
+end
+def update
   leave = Leave.find(params[:id])
 
   if leave.update(leave_params)
@@ -73,90 +85,67 @@ class Api::LeavesController < ApplicationController
     employee = User.find_by(email: leave.email)
 
     if employee
+      tokens = DeviceToken.where(user_id: employee.id).pluck(:token)
 
-      device_token = DeviceToken.find_by(user_id: employee.id)
+     if leave.status == "approved"
 
-     puts "=========================="
-puts "EMPLOYEE ID: #{employee.id}"
-puts "DB TOKEN: #{device_token&.token}"
-puts "=========================="
-  
-      if device_token
+  tokens.each do |token|
+    FirebaseNotificationService.send_notification(
+      token,
+      "Leave Approved",
+      "Your leave request has been approved."
+    )
+  end
 
-        if leave.status == "approved"
+elsif leave.status == "rejected"
 
-          FirebaseNotificationService.send_notification(
-            device_token.token,
-            "Leave Approved",
-            "Your leave request has been approved."
-          )
+  tokens.each do |token|
+    FirebaseNotificationService.send_notification(
+      token,
+      "Leave Rejected",
+      "Your leave request has been rejected."
+    )
+  end
 
-        elsif leave.status == "rejected"
-
-          FirebaseNotificationService.send_notification(
-            device_token.token,
-            "Leave Rejected",
-            "Your leave request has been rejected."
-          )
-
-        end
-
-      else
-        puts "NO DEVICE TOKEN FOUND"
-      end
-
-    end
-
+end
+end
     render json: {
       message: "Leave updated successfully",
       leave: leave
     }
 
   else
-
     render json: {
       errors: leave.errors.full_messages
     }, status: :unprocessable_entity
-
   end
 end
+    def destroy
+      leave = Leave.find(params[:id])
 
+      if leave.destroy
+        render json: {
+          message: "Leave deleted successfully"
+        }
+      else
+        render json: {
+          errors: "Delete failed"
+        }, status: :unprocessable_entity
+      end
+    end
 
+    private
 
-  def destroy
-    leave = Leave.find(params[:id])
-
-    if leave.destroy
-
-      render json: {
-        message: "Leave deleted successfully"
-      }
-
-    else
-
-      render json: {
-        errors: "Delete failed"
-      }, status: :unprocessable_entity
-
+    def leave_params
+      params.require(:leave).permit(
+        :employeename,
+        :email,
+        :leaveType,
+        :from_date,
+        :to_date,
+        :reason,
+        :status,
+        :profileImage
+      )
     end
   end
-
-
-
-  private
-
-
-  def leave_params
-    params.require(:leave).permit(
-      :employeename,
-      :email,
-      :leaveType,
-      :from_date,
-      :to_date,
-      :reason,
-      :status,
-      :profileImage
-    )
-  end
-
-end

@@ -1,6 +1,7 @@
 module Api
   class AuthController < ApplicationController
     skip_before_action :verify_authenticity_token
+    
 
     def signup
       user = User.new(user_params)
@@ -17,57 +18,35 @@ module Api
       end
     end
 
+   def login
 
-  def login
-  user = User.find_by(email: params[:email])
+  company = Company.find_by(email: params[:email])
 
-  if user&.authenticate(params[:password])
+  if company && company.authenticate(params[:password])
 
-   if params[:token].present?
-
-  # Remove this token from any previous user
-  DeviceToken.where(token: params[:token])
-             .where.not(user_id: user.id)
-             .delete_all
-
-
-  # Create or update current user's token
-  device_token = DeviceToken.find_or_initialize_by(
-    user_id: user.id
-  )
-
-  device_token.token = params[:token]
-  device_token.save!
-
-end
-
-
-    # device_token = DeviceToken.find_by(user_id: user.id)
-
-    # puts "TOKEN: #{device_token&.token}"
-
-
-    # if device_token
-
-    #   FirebaseNotificationService.send_notification(
-    #     device_token.token,
-    #     "Login Successful",
-    #     "Welcome #{user.role.capitalize}"
-    #   )
-
-    # end
-
-
-    puts "NOTIFICATION METHOD FINISHED"
-
+    token = JsonWebToken.encode(company_id: company.id)
 
     render json: {
-      message: "Login success",
-      user_id: user.id,
-      user: user,
-      role: user.role
-    }, status: :ok
+      token: token,
+      type: "company",
+      company: company
+    }
 
+    return
+  end
+
+  user = User.find_by(email: params[:email])
+
+  if user && user.authenticate(params[:password])
+
+    token = JsonWebToken.encode(user_id: user.id)
+
+    render json: {
+      token: token,
+      type: "user",
+      role: user.role,
+      user: user
+    }
 
   else
 
@@ -76,6 +55,7 @@ end
     }, status: :unauthorized
 
   end
+
 end
 
 

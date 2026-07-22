@@ -1,7 +1,7 @@
 module Api
   class DeviceTokensController < ApplicationController
 
-    skip_before_action :verify_authenticity_token
+    before_action :authenticate_request
 
     def create
 
@@ -13,14 +13,14 @@ module Api
 
       if device_token.save
 
-        render json:{
-          # message:"Device token saved",
-          data: device_token
-        }, status: :ok
+        render json: {
+          message: "Device token saved",
+          device_token: device_token
+        }
 
       else
 
-        render json:{
+        render json: {
           errors: device_token.errors.full_messages
         }, status: :unprocessable_entity
 
