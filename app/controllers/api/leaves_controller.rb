@@ -60,11 +60,17 @@ if employee
 
     # HR Mail
 
-    UserMailer
-      .leave_notification(hr, leave)
-      .deliver_now
+  begin
 
+  UserMailer
+    .leave_notification(hr, leave)
+    .deliver_later
 
+rescue => e
+
+  Rails.logger.error "LEAVE MAIL ERROR: #{e.message}"
+
+end
 
     # HR Firebase Notification
 
@@ -115,10 +121,17 @@ def update
 
       # Send Email to Employee
 
-      UserMailer
-        .leave_status_notification(employee, leave)
-        .deliver_now
+     begin
 
+  UserMailer
+    .leave_status_notification(employee, leave)
+    .deliver_later
+
+rescue => e
+
+  Rails.logger.error "LEAVE STATUS MAIL ERROR: #{e.message}"
+
+end
 
 
       # Send Firebase Notification
