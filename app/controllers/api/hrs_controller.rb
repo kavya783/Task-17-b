@@ -49,8 +49,8 @@ module Api
 
     begin
       UserMailer
-        .hr_created(hr)
-        .deliver_now
+  .hr_created(hr)
+  .deliver_later
     rescue => e
       Rails.logger.error "HR CREATE MAIL ERROR: #{e.message}"
     end
@@ -117,9 +117,9 @@ end
 
 
     begin
-      UserMailer
-        .hr_deleted(hr_email,hr_name)
-        .deliver_now
+    UserMailer
+  .hr_deleted(hr_email,hr_name)
+  .deliver_later
     rescue => e
       Rails.logger.error "HR DELETE MAIL ERROR: #{e.message}"
     end
