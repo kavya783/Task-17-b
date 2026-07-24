@@ -7,71 +7,75 @@ module Api
     before_action :set_hr, only: [:show, :update, :destroy]
 
 
-def index
+    def index
 
-  unless current_company
-    render json:{
-      error:"Company not found"
-    }, status: :unauthorized
-    return
-  end
+      hrs = User.where(
+        company_id: current_company.id,
+        role: User.roles[:hr]
+      )
 
-
-  hrs = User.where(
-    company_id: current_company.id,
-    role: "hr"
-  )
-
-
-  render json: hrs.map { |hr|
-    {
-      id: hr.id,
-      name: hr.name,
-      email: hr.email,
-      address: hr.address,
-      role: hr.role,
-      profile_image_url: hr.profile_image.attached? ? url_for(hr.profile_image) : nil
-    }
-  }
-
-end
-
-    def show
-
-      render json: @hr
+      render json: hrs.map { |hr|
+        {
+          id: hr.id,
+          name: hr.name,
+          email: hr.email,
+          address: hr.address,
+          role: hr.role,
+          profile_image_url: hr.profile_image.attached? ? url_for(hr.profile_image) : nil
+        }
+      }
 
     end
 
 
 
-def create
+    def show
 
-  unless current_company
-    render json:{
-      error:"Company authentication failed"
-    }, status: :unauthorized
-    return
-  end
+      render json:@hr
+
+    end
 
 
-  hr = User.new(hr_params)
 
-  hr.role = "hr"
-  hr.company_id = current_company.id
+    def create
+
+      hr = User.new(hr_params)
+
+      hr.role = "hr"
+      hr.company_id = current_company.id
 
 
-  if hr.save
-    render json:{
-      message:"HR added successfully",
-      user:hr
-    }, status: :created
-  else
-    render json:{
-      errors:hr.errors.full_messages
-    }, status: :unprocessable_entity
-  end
+      if hr.save
 
-end
+
+        # HR welcome mail
+
+        UserMailer
+          .hr_created(hr)
+          .deliver_now
+
+
+
+        render json:{
+          message:"HR added successfully",
+          user:hr
+        },
+        status: :created
+
+
+      else
+
+
+        render json:{
+          errors:hr.errors.full_messages
+        },
+        status: :unprocessable_entity
+
+
+      end
+
+    end
+
 
 
 
@@ -80,7 +84,6 @@ end
 
 
       if @hr.update(hr_params)
-
 
         render json:{
           message:"HR updated successfully",
@@ -109,16 +112,28 @@ end
     def destroy
 
 
-      @hr.destroy
+      hr_email = @hr.email
+      hr_name = @hr.name
 
 
-      render json:{
-        message:"HR deleted successfully"
-      }
+      if @hr.destroy
+
+
+        UserMailer
+          .hr_deleted(hr_email,hr_name)
+          .deliver_now
+
+
+
+        render json:{
+          message:"HR deleted successfully"
+        }
+
+
+      end
 
 
     end
-
 
 
 
@@ -128,12 +143,11 @@ end
 
 
 
-
     def set_hr
 
 
       @hr = User.find_by(
-        id: params[:id],
+        id:params[:id],
         role:"hr"
       )
 
@@ -153,17 +167,17 @@ end
 
 
 
+    def hr_params
 
-   def hr_params
-  params.permit(
-    :name,
-    :email,
-    :password,
-    :address,
-    :profile_image
-  )
-end
+      params.permit(
+        :name,
+        :email,
+        :password,
+        :address,
+        :profile_image
+      )
 
+    end
 
 
   end

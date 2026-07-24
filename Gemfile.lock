@@ -490,6 +490,7 @@ DEPENDENCIES
   jbuilder
   jwt
   kamal
+  mail
   pg
   propshaft
   puma (>= 5.0)

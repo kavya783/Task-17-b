@@ -14,7 +14,7 @@ group :development, :test do
   gem "brakeman", require: false
   gem "rubocop-rails-omakase", require: false
 end
-
+gem "mail"
 
   gem "pg"
 

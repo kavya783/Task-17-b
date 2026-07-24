@@ -26,12 +26,12 @@ module Api
 
     token = JsonWebToken.encode(company_id: company.id)
 
-    render json: {
-      token: token,
-      type: "company",
-      company: company
-    }
-
+   render json: {
+  message: "Login successful",
+  token: token,
+  type: "company",
+  company: company
+}
     return
   end
 
@@ -41,12 +41,13 @@ module Api
 
     token = JsonWebToken.encode(user_id: user.id)
 
-    render json: {
-      token: token,
-      type: "user",
-      role: user.role,
-      user: user
-    }
+  render json: {
+  message: "Login successful",
+  token: token,
+  type: "user",
+  role: user.role,
+  user: user
+}
 
   else
 
