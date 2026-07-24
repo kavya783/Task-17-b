@@ -60,7 +60,8 @@ config.active_job.queue_adapter = :async
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  
+  puts "MAIL USER: #{ENV['MAIL_USERNAME']}"
+puts "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
   config.action_mailer.delivery_method = :smtp
 
 config.action_mailer.smtp_settings = {
@@ -69,7 +70,7 @@ config.action_mailer.smtp_settings = {
   domain: "gmail.com",
   user_name: ENV["MAIL_USERNAME"],
   password: ENV["MAIL_PASSWORD"],
-  authentication: "plain",
+  authentication: :plain,
   enable_starttls_auto: true
 }
 
