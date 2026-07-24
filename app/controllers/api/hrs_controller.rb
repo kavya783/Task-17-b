@@ -37,44 +37,42 @@ module Api
 
 
 
-    def create
+   def create
 
-      hr = User.new(hr_params)
+  hr = User.new(hr_params)
 
-      hr.role = "hr"
-      hr.company_id = current_company.id
-
-
-      if hr.save
+  hr.role = "hr"
+  hr.company_id = current_company.id
 
 
-        # HR welcome mail
+  if hr.save
 
-        UserMailer
-          .hr_created(hr)
-          .deliver_now
-
-
-
-        render json:{
-          message:"HR added successfully",
-          user:hr
-        },
-        status: :created
-
-
-      else
-
-
-        render json:{
-          errors:hr.errors.full_messages
-        },
-        status: :unprocessable_entity
-
-
-      end
-
+    begin
+      UserMailer
+        .hr_created(hr)
+        .deliver_now
+    rescue => e
+      Rails.logger.error "HR CREATE MAIL ERROR: #{e.message}"
     end
+
+
+    render json:{
+      message:"HR added successfully",
+      user:hr
+    },
+    status: :created
+
+
+  else
+
+    render json:{
+      errors:hr.errors.full_messages
+    },
+    status: :unprocessable_entity
+
+  end
+
+end
 
 
 
@@ -111,29 +109,30 @@ module Api
 
     def destroy
 
-
-      hr_email = @hr.email
-      hr_name = @hr.name
-
-
-      if @hr.destroy
+  hr_email = @hr.email
+  hr_name = @hr.name
 
 
-        UserMailer
-          .hr_deleted(hr_email,hr_name)
-          .deliver_now
+  if @hr.destroy
 
 
-
-        render json:{
-          message:"HR deleted successfully"
-        }
-
-
-      end
-
-
+    begin
+      UserMailer
+        .hr_deleted(hr_email,hr_name)
+        .deliver_now
+    rescue => e
+      Rails.logger.error "HR DELETE MAIL ERROR: #{e.message}"
     end
+
+
+    render json:{
+      message:"HR deleted successfully"
+    }
+
+
+  end
+
+end
 
 
 

@@ -36,27 +36,8 @@ Rails.application.configure do
   config.action_mailer.raise_delivery_errors = false
 
   # Make template changes take effect immediately.
-config.action_mailer.perform_caching = false
+  config.action_mailer.perform_caching = false
 
-# SMTP Configuration
-config.action_mailer.delivery_method = :smtp
-
-config.action_mailer.smtp_settings = {
-  address: "smtp.gmail.com",
-  port: 587,
-  domain: "gmail.com",
-  user_name: ENV["SMTP_USERNAME"],
-  password: ENV["SMTP_PASSWORD"],
-  authentication: "plain",
-  enable_starttls_auto: true
-}
-
-config.action_mailer.default_url_options = {
-  host: "localhost",
-  port: 3000
-}
-
-config.action_mailer.raise_delivery_errors = true
   # Set localhost to be used by links generated in mailer templates.
 
 
