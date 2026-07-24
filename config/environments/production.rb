@@ -66,12 +66,12 @@ puts "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
 
 config.action_mailer.smtp_settings = {
   address: "smtp.gmail.com",
-  port: 465,
+  port: 587,
   domain: "gmail.com",
   user_name: ENV["MAIL_USERNAME"],
   password: ENV["MAIL_PASSWORD"],
-  authentication: "plain",
-  ssl: true,
+  authentication: :plain,
+  enable_starttls_auto: true,
   open_timeout: 10,
   read_timeout: 10
 }
