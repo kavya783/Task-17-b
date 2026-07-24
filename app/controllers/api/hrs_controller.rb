@@ -37,6 +37,14 @@ end
 
 def create
 
+  unless current_company
+    render json:{
+      error:"Company authentication failed"
+    }, status: :unauthorized
+    return
+  end
+
+
   hr = User.new(hr_params)
 
   hr.role = "hr"
@@ -44,19 +52,14 @@ def create
 
 
   if hr.save
-
     render json:{
       message:"HR added successfully",
       user:hr
     }, status: :created
-
-
   else
-
     render json:{
-      errors: hr.errors.full_messages
+      errors:hr.errors.full_messages
     }, status: :unprocessable_entity
-
   end
 
 end
