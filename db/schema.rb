@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_090745) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_24_045020) do
   create_table "active_admin_comments", force: :cascade do |t|
     t.integer "author_id"
     t.string "author_type"
@@ -76,14 +76,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_090745) do
   end
 
   create_table "device_tokens", force: :cascade do |t|
-    t.text "auth"
     t.datetime "created_at", null: false
-    t.text "endpoint"
-    t.text "p256dh"
     t.string "token"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
-    t.index ["user_id"], name: "index_device_tokens_on_user_id"
+    t.index ["user_id"], name: "index_device_tokens_on_user_id", unique: true
   end
 
   create_table "employees", force: :cascade do |t|
@@ -108,19 +105,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_090745) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "push_subscriptions", force: :cascade do |t|
-    t.text "auth"
-    t.datetime "created_at", null: false
-    t.text "endpoint"
-    t.text "p256dh"
-    t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
-    t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
-  end
-
   create_table "users", force: :cascade do |t|
     t.string "address"
-    t.integer "company_id"
     t.datetime "created_at", null: false
     t.string "email"
     t.string "fcm_token"
@@ -130,12 +116,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_090745) do
     t.integer "role"
     t.string "salary"
     t.datetime "updated_at", null: false
-    t.index ["company_id"], name: "index_users_on_company_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "device_tokens", "users"
-  add_foreign_key "push_subscriptions", "users"
-  add_foreign_key "users", "companies"
 end
