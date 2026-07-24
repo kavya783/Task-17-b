@@ -33,9 +33,10 @@ class User < ApplicationRecord
 
 
   enum :role, {
-    employee: 0,
-    hr: 1
-  }
+  employee: 0,
+  hr: 1,
+  company: 2
+}
 
 
   def self.ransackable_attributes(auth_object = nil)
