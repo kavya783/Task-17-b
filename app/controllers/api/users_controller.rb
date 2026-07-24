@@ -8,41 +8,51 @@ module Api
 
 
     # GET /api/users
-    def index
+   def index
 
-      if current_user.role == "company"
+  if current_user.role == "company"
 
-        users = User.where(
-          company_id: current_user.id,
-          role: "hr"
-        )
-
-      elsif current_user.role == "hr"
-
-        users = User.where(
-          company_id: current_user.company_id,
-          role: "employee"
-        )
-
-      else
-
-        users = []
-
-      end
+    users = User.where(
+      company_id: current_user.id,
+      role: "hr"
+    )
 
 
-      render json: users.map { |user|
+  elsif current_user.role == "hr"
 
-        user.as_json.merge(
-          profile_image_url:
-          user.profile_image.attached? ?
-          url_for(user.profile_image) :
-          nil
-        )
+    users = User.where(
+      hr_id: current_user.id,
+      role: "employee"
+    )
 
-      }
 
-    end
+  elsif current_user.role == "employee"
+
+    users = User.where(
+      id: current_user.id,
+      role: "employee"
+    )
+
+
+  else
+
+    users = []
+
+  end
+
+
+  render json: users.map { |user|
+
+    user.as_json.merge(
+      profile_image_url:
+      user.profile_image.attached? ?
+      url_for(user.profile_image) :
+      nil
+    )
+
+  }
+
+end
 
 
 
@@ -64,30 +74,37 @@ module Api
 
 
 
-    # POST /api/users
-   def create
+   
+def create
 
-  Rails.logger.info "CURRENT USER ===== #{current_user.inspect}"
+  Rails.logger.info "PARAMS ===== #{user_params.inspect}"
+  Rails.logger.info "CURRENT COMPANY ===== #{current_company.inspect}"
+
 
   user = User.new(user_params)
 
 
   if user.role == "hr"
+  user.company_id = current_company.id
 
-    user.company_id = current_user.id
-
-  end
+elsif user.role == "employee"
+  user.company_id = current_user.company_id
+  user.hr_id = current_user.id
+end
 
 
   if user.save
 
     render json:{
-      message:"HR created successfully",
+      message:"#{user.role} created successfully",
       user:user
     },
     status: :created
 
+
   else
+
+    Rails.logger.info "USER ERRORS ===== #{user.errors.full_messages}"
 
     render json:{
       errors:user.errors.full_messages
@@ -218,18 +235,17 @@ end
 
 
 
-      params.permit(
-
-        :name,
-        :email,
-        :password,
-        :role,
-        :address,
-        :salary,
-        :profile_image,
-        :company_id
-
-      )
+     params.permit(
+  :name,
+  :email,
+  :password,
+  :role,
+  :address,
+  :salary,
+  :profile_image,
+  :company_id,
+  :hr_id
+)
 
 
     end
