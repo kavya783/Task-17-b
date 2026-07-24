@@ -9,21 +9,30 @@ module Api
 
 def index
 
+  unless current_company
+    render json:{
+      error:"Company not found"
+    }, status: :unauthorized
+    return
+  end
+
+
   hrs = User.where(
     company_id: current_company.id,
-    role: User.roles[:hr]
+    role: "hr"
   )
 
+
   render json: hrs.map { |hr|
-  {
-    id: hr.id,
-    name: hr.name,
-    email: hr.email,
-    address: hr.address,
-    role: hr.role,
-    profile_image_url: hr.profile_image.attached? ? url_for(hr.profile_image) : nil
+    {
+      id: hr.id,
+      name: hr.name,
+      email: hr.email,
+      address: hr.address,
+      role: hr.role,
+      profile_image_url: hr.profile_image.attached? ? url_for(hr.profile_image) : nil
+    }
   }
-}
 
 end
 
