@@ -54,7 +54,7 @@ config.active_storage.service = :amazon
   # config.solid_queue.connects_to = { database: { writing: :queue } }
 config.cache_store = :memory_store
 
-config.active_job.queue_adapter = :async
+config.active_job.queue_adapter = :inline
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
@@ -70,8 +70,10 @@ config.action_mailer.smtp_settings = {
   domain: "gmail.com",
   user_name: ENV["MAIL_USERNAME"],
   password: ENV["MAIL_PASSWORD"],
-  authentication: "plain",
-  enable_starttls_auto: true
+  authentication: :plain,
+  enable_starttls_auto: true,
+  open_timeout: 10,
+  read_timeout: 10
 }
 config.action_mailer.default_url_options = {
   host: "task-17-b.onrender.com",
