@@ -62,8 +62,8 @@ config.active_job.queue_adapter = :inline
   # Set host to be used by links generated in mailer templates.
  config.action_mailer.delivery_method = :smtp
 
-Rails.logger.info "MAIL USER: #{ENV['MAIL_USERNAME']}"
-Rails.logger.info "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
+puts "MAIL USER: #{ENV['MAIL_USERNAME']}"
+puts "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
 
 config.action_mailer.smtp_settings = {
   address: "smtp.gmail.com",
