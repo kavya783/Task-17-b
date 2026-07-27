@@ -65,17 +65,16 @@ config.active_job.queue_adapter = :async
 puts "MAIL USER: #{ENV['MAIL_USERNAME']}"
 puts "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
 
-config.action_mailer.delivery_method = :smtp
 
 
 config.action_mailer.smtp_settings = {
   address: "smtp.gmail.com",
-  port: 465,
+  port: 587,
   domain: "gmail.com",
   user_name: ENV["MAIL_USERNAME"],
   password: ENV["MAIL_PASSWORD"],
   authentication: :plain,
-  ssl: true,
+  enable_starttls_auto: true,
   open_timeout: 60,
   read_timeout: 60
 }
