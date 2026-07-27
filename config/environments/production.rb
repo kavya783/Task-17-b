@@ -66,6 +66,7 @@ puts "MAIL USER: #{ENV['MAIL_USERNAME']}"
 puts "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
 
 config.action_mailer.delivery_method = :smtp
+binding.pry
 
 config.action_mailer.smtp_settings = {
   address: "smtp.gmail.com",

@@ -14,7 +14,9 @@ group :development, :test do
   gem "brakeman", require: false
   gem "rubocop-rails-omakase", require: false
 end
-gem "mail"
+
+
+gem 'mail', '~> 2.7'
 
   gem "pg"
 
@@ -45,7 +47,7 @@ gem "sassc-rails"
 # Timezone
 gem "tzinfo-data", platforms: %i[windows jruby]
 
-
+gem "pry"
 
 # Environment variables
 gem "dotenv-rails"
