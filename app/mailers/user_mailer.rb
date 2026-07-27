@@ -1,5 +1,6 @@
 class UserMailer < ApplicationMailer
 
+default from: ENV["MAIL_USERNAME"]
 
 
   # HR Added Mail
