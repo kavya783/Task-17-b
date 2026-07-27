@@ -71,10 +71,8 @@ config.action_mailer.smtp_settings = {
   domain: "gmail.com",
   user_name: ENV["MAIL_USERNAME"],
   password: ENV["MAIL_PASSWORD"],
-  authentication: :login,
-  enable_starttls_auto: true,
-  open_timeout: 30,
-  read_timeout: 30
+  authentication: "plain",
+  enable_starttls_auto: true
 }
 config.action_mailer.default_url_options = {
   host: "task-17-b.onrender.com",
