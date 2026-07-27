@@ -1,6 +1,6 @@
 class UserMailer < ApplicationMailer
 
-default from: ENV["MAIL_USERNAME"]
+  default from: "kavya.actimize@gmail.com"
 
 
   # HR Added Mail
