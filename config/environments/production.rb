@@ -60,9 +60,10 @@ config.active_job.queue_adapter = :inline
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  puts "MAIL USER: #{ENV['MAIL_USERNAME']}"
-puts "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
-  config.action_mailer.delivery_method = :smtp
+ config.action_mailer.delivery_method = :smtp
+
+Rails.logger.info "MAIL USER: #{ENV['MAIL_USERNAME']}"
+Rails.logger.info "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
 
 config.action_mailer.smtp_settings = {
   address: "smtp.gmail.com",
@@ -70,10 +71,10 @@ config.action_mailer.smtp_settings = {
   domain: "gmail.com",
   user_name: ENV["MAIL_USERNAME"],
   password: ENV["MAIL_PASSWORD"],
-  authentication: :plain,
+  authentication: :login,
   enable_starttls_auto: true,
-  open_timeout: 10,
-  read_timeout: 10
+  open_timeout: 30,
+  read_timeout: 30
 }
 config.action_mailer.default_url_options = {
   host: "task-17-b.onrender.com",
