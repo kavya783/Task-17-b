@@ -48,7 +48,7 @@ module Api
   if hr.save
 
     begin
-   UserMailer.hr_created(hr).deliver_later
+  UserMailer.hr_created(user).deliver_now
       Rails.logger.info "MAIL SENT SUCCESSFULLY"
     rescue => e
       Rails.logger.error "CLASS: #{e.class}"
@@ -120,7 +120,7 @@ end
 UserMailer.hr_deleted(
   hr_email,
   hr_name
-).deliver_later
+).deliver_now
 rescue => e
   Rails.logger.error "HR DELETE MAIL ERROR: #{e.message}"
 end
