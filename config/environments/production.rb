@@ -72,8 +72,9 @@ config.action_mailer.smtp_settings = {
   password: ENV["MAIL_PASSWORD"],
   authentication: :plain,
   enable_starttls_auto: true,
-  open_timeout: 30,
-  read_timeout: 30
+  tls: false,
+  ssl: false,
+  openssl_verify_mode: "none"
 }
 config.action_mailer.default_url_options = {
   host: "task-17-b.onrender.com",
