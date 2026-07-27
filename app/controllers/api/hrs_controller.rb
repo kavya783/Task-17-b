@@ -37,7 +37,7 @@ module Api
 
 
 
-   def create
+  def create
 
   hr = User.new(hr_params)
 
@@ -45,19 +45,16 @@ module Api
   hr.company_id = current_company.id
 
 
- if hr.save
+  if hr.save
 
-  Rails.logger.info "HR SAVED #{hr.email}"
+    begin
+      UserMailer.hr_created(hr).deliver_now
+      Rails.logger.info "MAIL SENT SUCCESSFULLY"
+    rescue => e
+      Rails.logger.error "CLASS: #{e.class}"
+      Rails.logger.error "MESSAGE: #{e.message}"
+    end
 
-  begin
-    UserMailer.hr_created(hr).deliver_now
-    Rails.logger.info "MAIL SENT SUCCESSFULLY"
-  rescue => e
-    Rails.logger.error "MAIL ERROR CLASS: #{e.class}"
-    Rails.logger.error "MAIL ERROR MESSAGE: #{e.message}"
-  end
-
-end
 
     render json:{
       message:"HR added successfully",
@@ -69,7 +66,7 @@ end
   else
 
     render json:{
-      errors:hr.errors.full_messages
+      errors: hr.errors.full_messages
     },
     status: :unprocessable_entity
 
