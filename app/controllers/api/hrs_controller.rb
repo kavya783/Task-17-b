@@ -47,8 +47,8 @@ module Api
 
   if hr.save
 
-  begin
- UserMailer.hr_created(hr).deliver_later
+ begin
+  UserMailer.hr_created(hr).deliver_now
   Rails.logger.info "MAIL SENT SUCCESSFULLY"
 rescue => e
   Rails.logger.error "CLASS: #{e.class}"
