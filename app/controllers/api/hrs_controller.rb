@@ -47,12 +47,13 @@ module Api
 
   if hr.save
 
-    begin
-  UserMailer.hr_created(hr).deliver_later
+   begin
+  UserMailer.hr_created(hr).deliver_now
 rescue => e
-  Rails.logger.error "HR CREATE MAIL ERROR: #{e.message}"
+  Rails.logger.error "CLASS: #{e.class}"
+  Rails.logger.error "MESSAGE: #{e.message}"
+  Rails.logger.error e.backtrace.join("\n")
 end
-
 
     render json:{
       message:"HR added successfully",
