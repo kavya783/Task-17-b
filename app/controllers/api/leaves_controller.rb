@@ -62,9 +62,9 @@ if employee
 
   begin
 
-  UserMailer
-    .leave_notification(hr, leave)
-    .deliver_later
+ UserMailer
+  .leave_notification(hr, leave)
+  .deliver_now  
 
 rescue => e
 
@@ -123,9 +123,9 @@ def update
 
      begin
 
-  UserMailer
-    .leave_status_notification(employee, leave)
-    .deliver_later
+ UserMailer
+  .leave_status_notification(employee, leave)
+  .deliver_now
 
 rescue => e
 
