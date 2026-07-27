@@ -73,10 +73,8 @@ config.action_mailer.smtp_settings = {
   domain: "gmail.com",
   user_name: ENV["MAIL_USERNAME"],
   password: ENV["MAIL_PASSWORD"],
-  authentication: :plain,
-  enable_starttls_auto: true,
-  open_timeout: 60,
-  read_timeout: 60
+  authentication: "login",
+  enable_starttls_auto: true
 }
 config.action_mailer.perform_deliveries = true
 config.action_mailer.raise_delivery_errors = true

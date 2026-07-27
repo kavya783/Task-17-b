@@ -5,6 +5,7 @@ class UserMailer < ApplicationMailer
 
   # HR Added Mail
   def hr_created(hr)
+     Rails.logger.info "MAIL STARTED TO #{hr.email}"
     @hr = hr
 
     mail(
