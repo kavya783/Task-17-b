@@ -120,7 +120,7 @@ end
 UserMailer.hr_deleted(
   hr_email,
   hr_name
-).deliver_now
+).deliver_later
 rescue => e
   Rails.logger.error "HR DELETE MAIL ERROR: #{e.message}"
 end
