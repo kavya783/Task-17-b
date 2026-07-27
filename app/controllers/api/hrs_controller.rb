@@ -45,15 +45,18 @@ module Api
   hr.company_id = current_company.id
 
 
-  if hr.save
+ if hr.save
 
- begin
-  UserMailer.hr_created(hr).deliver_now
-  Rails.logger.info "MAIL SENT SUCCESSFULLY"
-rescue => e
-  Rails.logger.error "CLASS: #{e.class}"
-  Rails.logger.error "MESSAGE: #{e.message}"
-  Rails.logger.error e.backtrace.join("\n")
+  Rails.logger.info "HR SAVED #{hr.email}"
+
+  begin
+    UserMailer.hr_created(hr).deliver_now
+    Rails.logger.info "MAIL SENT SUCCESSFULLY"
+  rescue => e
+    Rails.logger.error "MAIL ERROR CLASS: #{e.class}"
+    Rails.logger.error "MAIL ERROR MESSAGE: #{e.message}"
+  end
+
 end
 
     render json:{
