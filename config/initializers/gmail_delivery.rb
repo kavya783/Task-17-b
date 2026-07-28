@@ -1,14 +1,14 @@
 require 'google/apis/gmail_v1'
 
 class GmailHttpDelivery
-  def initialize(values)
-    # This automatically authenticates using your username and App Password via HTTP Basic auth
+  def initialize(values = {})
     @gmail_service = Google::Apis::GmailV1::GmailService.new
-    username = values[:user_name]
-    password = values[:password]
     
-    # Encode your credentials cleanly into the HTTP Authorization header
-    encoded_auth = Base64.strict_encode64("#{username Packs}:#{password}")
+    username = "kavya.actimize@gmail.com"
+    password = ENV["MAIL_PASSWORD"]
+    
+    # FIXED: The word Packs has been completely removed here
+    encoded_auth = Base64.strict_encode64("#{username}:#{password}")
     @gmail_service.additional_http_headers = { 'Authorization' => "Basic #{encoded_auth}" }
   end
 
