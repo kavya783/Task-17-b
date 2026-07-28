@@ -16,15 +16,18 @@ class UserMailer < ApplicationMailer
 
 
   # HR Deleted Mail
-  def hr_deleted(hr_email, hr_name)
-    @hr_email = hr_email
+ def hr_deleted(hr_email, hr_name)
+
+    Rails.logger.info "DELETE MAIL STARTED TO #{hr_email}"
+
     @hr_name = hr_name
 
     mail(
-      to: @hr_email,
-      subject: "HR Account Deleted"
+      to: hr_email,
+      subject: "Your HR Account Has Been Deleted"
     )
   end
+
 
 
   # Leave Applied Mail To HR
