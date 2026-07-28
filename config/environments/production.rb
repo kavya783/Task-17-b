@@ -53,6 +53,7 @@ config.active_storage.service = :amazon
   # config.active_job.queue_adapter = :solid_queue
   # config.solid_queue.connects_to = { database: { writing: :queue } }
 config.cache_store = :memory_store
+
 config.active_job.queue_adapter = :inline
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
@@ -65,17 +66,15 @@ puts "MAIL USER: #{ENV['MAIL_USERNAME']}"
 puts "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
 
 
+
 config.action_mailer.smtp_settings = {
   address: "smtp.gmail.com",
   port: 587,
   domain: "gmail.com",
   user_name: ENV["MAIL_USERNAME"],
   password: ENV["MAIL_PASSWORD"],
-  authentication: :plain,
-  enable_starttls_auto: true,
-  open_timeout: 30,
-  read_timeout: 30,
-  debug_output: STDOUT
+  authentication: "login",
+  enable_starttls_auto: true
 }
 config.action_mailer.perform_deliveries = true
 config.action_mailer.raise_delivery_errors = true

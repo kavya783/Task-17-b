@@ -45,17 +45,14 @@ module Api
   hr.company_id = current_company.id
 
 
-   if hr.save
-    begin
-      UserMailer.hr_created(hr).deliver_now
-      render json: { message: "HR added successfully and Email Sent!", user: hr }, status: :created
-    rescue => e
-     
-      hr.destroy 
-      render json: { error: "Email delivery failed: #{e.message}. HR account was not created." }, status: :bad_request
-    end
-  else
-    render json: { errors: hr.errors.full_messages }, status: :unprocessable_entity
+  if hr.save
+
+  begin
+    UserMailer.hr_created(hr).deliver_now
+    Rails.logger.info "MAIL SENT SUCCESSFULLY"
+  rescue => e
+    Rails.logger.error "MAIL ERROR: #{e.class} - #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
   end
 
   render json:{
