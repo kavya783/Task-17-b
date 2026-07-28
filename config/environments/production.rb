@@ -75,7 +75,7 @@ config.action_mailer.smtp_settings = {
 }
 
 config.action_mailer.perform_deliveries = true
-config.action_mailer.raise_delivery_errors = truee
+config.action_mailer.raise_delivery_errors = true
 
 config.action_mailer.default_url_options = {
   host: "task-17-b.onrender.com",
