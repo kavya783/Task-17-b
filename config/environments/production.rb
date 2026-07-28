@@ -73,7 +73,9 @@ config.action_mailer.smtp_settings = {
   user_name: "resend",
   password: ENV["RESEND_API_KEY"],
   authentication: :plain,
-  enable_starttls_auto: true
+  enable_starttls_auto: true,
+  open_timeout: 10,
+  read_timeout: 10
 }
 config.action_mailer.perform_deliveries = true
 config.action_mailer.raise_delivery_errors = true
@@ -83,9 +85,7 @@ config.action_mailer.default_url_options = {
   protocol: "https"
 }
 
-config.action_mailer.default_options = {
-  from: "onboarding@resend.dev"
-}
+
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
   # config.action_mailer.smtp_settings = {
   #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
