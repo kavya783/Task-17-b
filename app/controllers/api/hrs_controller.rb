@@ -105,17 +105,16 @@ end
 
 
 
-
-   def destroy
+def destroy
 
   hr_email = @hr.email
   hr_name = @hr.name
 
-  begin
+  if @hr.destroy
 
-    if @hr.destroy
+    Rails.logger.info "HR DELETED SUCCESSFULLY"
 
-      Rails.logger.info "HR DELETED SUCCESSFULLY"
+    begin
 
       UserMailer.hr_deleted(
         hr_email,
@@ -124,26 +123,25 @@ end
 
       Rails.logger.info "DELETE MAIL SENT SUCCESSFULLY"
 
-      render json:{
-        message:"HR deleted successfully"
-      }
+    rescue => e
 
-    else
-
-      render json:{
-        error:"HR delete failed"
-      }, status: :unprocessable_entity
+      Rails.logger.error "DELETE MAIL ERROR"
+      Rails.logger.error e.class.to_s
+      Rails.logger.error e.message
 
     end
 
-  rescue => e
-
-    Rails.logger.error "DELETE ERROR: #{e.class}"
-    Rails.logger.error e.message
 
     render json:{
-      error:e.message
-    }, status:500
+      message:"HR deleted successfully"
+    }
+
+  else
+
+    render json:{
+      error:"HR delete failed"
+    },
+    status: :unprocessable_entity
 
   end
 
