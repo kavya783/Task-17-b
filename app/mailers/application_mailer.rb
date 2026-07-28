@@ -1,4 +1,4 @@
 class ApplicationMailer < ActionMailer::Base
-  default from: "onboarding@resend.dev"
+ default from: "kavya.actimize@gmail.com"
   layout "mailer"
 end
