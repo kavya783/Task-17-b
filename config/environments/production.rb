@@ -62,17 +62,15 @@ config.active_job.queue_adapter = :async
   # Set host to be used by links generated in mailer templates.
 
 
-config.action_mailer.delivery_method = :smtp
+  # Tell Rails to use our custom HTTP-based delivery method to bypass Render's firewall
+  config.action_mailer.delivery_method = :gmail_http
+  config.action_mailer.gmail_http_settings = {
+    user_name: "kavya.actimize@gmail.com",
+    password: ENV["MAIL_PASSWORD"] # Reads your exact 16-character App Password cleanly
+  }
 
-config.action_mailer.smtp_settings = {
-  address: "smtp.gmail.com",
-  port: 587,
-  domain: "gmail.com",
-  user_name: "kavya.actimize@gmail.com",
-  password: ENV["MAIL_PASSWORD"],
-  authentication: :plain,
-  enable_starttls_auto: true
-}
+  
+
 
 config.action_mailer.perform_deliveries = true
 config.action_mailer.raise_delivery_errors = true
@@ -83,7 +81,7 @@ config.action_mailer.default_url_options = {
 }
 
 config.action_mailer.default_options = {
-  from: "onboarding@resend.dev"
+  from: "kavya.actimize@gmail.com"
 }
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
   # config.action_mailer.smtp_settings = {

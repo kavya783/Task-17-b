@@ -15,6 +15,7 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
 end
 
+gem "google-apis-gmail_v1"
 
 gem 'mail', '~> 2.7'
 
