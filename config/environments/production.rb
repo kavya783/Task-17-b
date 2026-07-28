@@ -62,8 +62,7 @@ config.active_job.queue_adapter = :async
   # Set host to be used by links generated in mailer templates.
  config.action_mailer.delivery_method = :smtp
 
-puts "MAIL USER: #{ENV['MAIL_USERNAME']}"
-puts "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
+
 
 
 config.action_mailer.smtp_settings = {
@@ -84,7 +83,7 @@ config.action_mailer.default_url_options = {
 }
 
 config.action_mailer.default_options = {
-  from: ENV["MAIL_USERNAME"]
+  from: "onboarding@resend.dev"
 }
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
   # config.action_mailer.smtp_settings = {
