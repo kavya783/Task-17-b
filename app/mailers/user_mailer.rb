@@ -1,5 +1,4 @@
 class UserMailer < ApplicationMailer
- default from: "kavya.actimize@gmail.com"
 
 
 
