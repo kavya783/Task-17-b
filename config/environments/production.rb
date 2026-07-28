@@ -67,13 +67,13 @@ puts "MAIL PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
 
 
 config.action_mailer.smtp_settings = {
-  address: "smtp.gmail.com",
+  address: "smtp.resend.com",
   port: 465,
-  domain: "gmail.com",
-  user_name: ENV["MAIL_USERNAME"],
-  password: ENV["MAIL_PASSWORD"],
+  domain: "resend.com",
+  user_name: "resend",
+  password: ENV["RESEND_API_KEY"],
   authentication: "plain",
-  ssl: true
+  enable_starttls_auto: true
 }
 config.action_mailer.perform_deliveries = true
 config.action_mailer.raise_delivery_errors = true

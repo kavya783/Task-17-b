@@ -1,4 +1,4 @@
 class ApplicationMailer < ActionMailer::Base
-  default from: ENV["MAIL_USERNAME"]
+  default from: "onboarding@resend.dev"
   layout "mailer"
 end
