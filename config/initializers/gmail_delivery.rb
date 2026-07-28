@@ -1,21 +1,23 @@
-require 'google/apis/gmail_v1'
+  # Configure native Rails SMTP to use Google's unblocked alternative port
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.smtp_settings = {
+    address: "smtp.gmail.com",
+    port: 2525,                          # Port 2525 safely bypasses Render's firewall!
+    domain: "gmail.com",
+    user_name: "kavya.actimize@gmail.com",
+    password: ENV["MAIL_PASSWORD"],       # Reads your 16-character Gmail App Password cleanly
+    authentication: :plain,
+    enable_starttls_auto: true
+  }
 
-class GmailHttpDelivery
-  def initialize(values = {})
-    @gmail_service = Google::Apis::GmailV1::GmailService.new
-    
-    username = "kavya.actimize@gmail.com"
-    password = ENV["MAIL_PASSWORD"]
-    
-    # FIXED: The word Packs has been completely removed here
-    encoded_auth = Base64.strict_encode64("#{username}:#{password}")
-    @gmail_service.additional_http_headers = { 'Authorization' => "Basic #{encoded_auth}" }
-  end
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.raise_delivery_errors = true
 
-  def deliver!(mail)
-    message = Google::Apis::GmailV1::Message.new(raw: mail.encoded)
-    @gmail_service.send_user_message('me', message)
-  end
-end
+  config.action_mailer.default_url_options = {
+    host: "task-17-b.onrender.com",
+    protocol: "https"
+  }
 
-ActionMailer::Base.add_delivery_method :gmail_http, GmailHttpDelivery
+  config.action_mailer.default_options = {
+    from: "kavya.actimize@gmail.com"
+  }
