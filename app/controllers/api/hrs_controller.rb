@@ -48,7 +48,7 @@ module Api
   if hr.save
 
  begin
-  UserMailer.hr_created(hr).deliver_now
+  UserMailer.hr_created(hr).deliver_later
   Rails.logger.info "========== MAIL SENT SUCCESSFULLY =========="
 rescue => e
   Rails.logger.error "========== MAIL ERROR =========="
@@ -119,7 +119,7 @@ def destroy
       UserMailer.hr_deleted(
         hr_email,
         hr_name
-      ).deliver_now
+      ).deliver_later
 
       Rails.logger.info "DELETE MAIL SENT SUCCESSFULLY"
 
