@@ -64,14 +64,15 @@ config.active_job.queue_adapter = :async
 
 
 
+puts "RESEND KEY PRESENT: #{ENV['RESEND_API_KEY'].present?}"
 
 config.action_mailer.smtp_settings = {
   address: "smtp.resend.com",
-  port: 465,
+  port: 587,
   domain: "resend.com",
   user_name: "resend",
   password: ENV["RESEND_API_KEY"],
-  authentication: "plain",
+  authentication: :plain,
   enable_starttls_auto: true
 }
 config.action_mailer.perform_deliveries = true
