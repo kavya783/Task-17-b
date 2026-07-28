@@ -74,8 +74,7 @@ config.action_mailer.smtp_settings = {
   password: ENV["MAIL_PASSWORD"],
   authentication: :plain,
   enable_starttls_auto: true,
-  open_timeout: 60,
-  read_timeout: 60
+ 
 }
 config.action_mailer.perform_deliveries = true
 config.action_mailer.raise_delivery_errors = true
