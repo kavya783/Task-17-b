@@ -4,8 +4,7 @@ gem "rails", "~> 8.1.3"
 
 # Web server
 gem "puma", ">= 5.0"
-gem "solid_queue"
-gem "solid_cache"
+
 # Database
 group :development, :test do
   gem "sqlite3", ">= 2.1"
