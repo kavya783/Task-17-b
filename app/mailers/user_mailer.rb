@@ -15,18 +15,19 @@ class UserMailer < ApplicationMailer
 
 
   # HR Deleted Mail
- def hr_deleted(hr_email, hr_name)
+def hr_deleted(hr_email, hr_name)
 
-    Rails.logger.info "DELETE MAIL STARTED TO #{hr_email}"
+  Rails.logger.info "DELETE MAIL STARTED TO #{hr_email}"
+  Rails.logger.info "MAIL USERNAME: #{ENV['MAIL_USERNAME']}"
+  Rails.logger.info "PASSWORD PRESENT: #{ENV['MAIL_PASSWORD'].present?}"
 
-    @hr_name = hr_name
+  @hr_name = hr_name
 
-    mail(
-      to: hr_email,
-      subject: "Your HR Account Has Been Deleted"
-    )
-  end
-
+  mail(
+    to: hr_email,
+    subject: "Your HR Account Has Been Deleted"
+  )
+end
 
 
   # Leave Applied Mail To HR
