@@ -41,14 +41,15 @@ Rails.application.configure do
  config.action_mailer.delivery_method = :smtp
 config.action_mailer.smtp_settings = {
   address: "smtp.gmail.com",
-  port: 587,
+  port: 465,
   domain: "gmail.com",
   user_name: "kavya.actimize@gmail.com",
   password: "tzxirsxldixhwqnv",
   authentication: "plain",
-  enable_starttls_auto: true,
+  enable_starttls_auto: false,
   open_timeout: 180,
-  read_timeout: 180
+  read_timeout: 180,
+  ssl: true
 }
 
   # FIXED: Removed the invalid gmail_http_settings block to prevent build crashes
