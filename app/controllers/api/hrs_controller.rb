@@ -123,7 +123,7 @@ def destroy
 
     rescue => e
 
-      Rails.logger.error "DELETE MAIL ERROR"
+      Rails.logger.error e
       Rails.logger.error e.class.to_s
       Rails.logger.error e.message
 
