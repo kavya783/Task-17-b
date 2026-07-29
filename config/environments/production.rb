@@ -38,19 +38,29 @@ Rails.application.configure do
   config.active_job.queue_adapter = :async
 
   # FIXED: Tell Rails to use our custom HTTP delivery method
- config.action_mailer.delivery_method = :smtp
-config.action_mailer.smtp_settings = {
-  address: "smtp.gmail.com",
-  port: 465,
-  domain: "gmail.com",
-  user_name: "kavya.actimize@gmail.com",
-  password: "tzxirsxldixhwqnv",
-  authentication: "plain",
-  enable_starttls_auto: false,
-  open_timeout: 180,
-  read_timeout: 180,
-  ssl: true
-}
+ 
+
+
+  config.action_mailer.default_options = {from: 'kavya.actimize@gmail.com'}
+
+  config.action_mailer.delivery_method = :smtp
+
+  config.action_mailer.smtp_settings = {
+
+  address:              'smtp.gmail.com',
+
+  port:                 587,
+
+  domain:               'JAYTHREE',
+
+  user_name:            'kavya.actimize@gmail.com',
+
+  password:             'tzxi rsxl dixh wqnv',
+
+  authentication:       'plain',
+
+  enable_starttls_auto: true 
+ }
 
   # FIXED: Removed the invalid gmail_http_settings block to prevent build crashes
 
@@ -62,9 +72,6 @@ config.action_mailer.smtp_settings = {
     protocol: "https"
   }
 
-  config.action_mailer.default_options = {
-    from: "kavya.actimize@gmail.com"
-  }
 
   # Enable locale fallbacks for I18n.
   config.i18n.fallbacks = true
