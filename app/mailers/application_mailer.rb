@@ -1,4 +1,4 @@
 class ApplicationMailer < ActionMailer::Base
- default from: "kavya.actimize@gmail.com"
+ default from: ENV["MAIL_USERNAME"]
   layout "mailer"
 end
