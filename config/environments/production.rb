@@ -47,8 +47,7 @@ config.action_mailer.smtp_settings = {
   password: ENV["MAIL_PASSWORD"],
   authentication: "plain",
   enable_starttls_auto: true,
-  open_timeout: 60,
-  read_timeout: 60
+ 
 }
 
   # FIXED: Removed the invalid gmail_http_settings block to prevent build crashes
