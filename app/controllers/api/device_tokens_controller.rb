@@ -5,24 +5,35 @@ module Api
 
     def create
 
-      device_token = DeviceToken.find_or_initialize_by(
-        user_id: params[:user_id]
-      )
+      if current_user
+
+        device_token = DeviceToken.find_or_initialize_by(
+          user_id: current_user.id
+        )
+
+      elsif current_company
+
+        device_token = DeviceToken.find_or_initialize_by(
+          company_id: current_company.id
+        )
+
+      end
+
 
       device_token.token = params[:token]
 
+
       if device_token.save
 
-        render json: {
-          message: "Device token saved",
-          device_token: device_token
+        render json:{
+          message:"Device token saved"
         }
 
       else
 
-        render json: {
+        render json:{
           errors: device_token.errors.full_messages
-        }, status: :unprocessable_entity
+        },status:422
 
       end
 

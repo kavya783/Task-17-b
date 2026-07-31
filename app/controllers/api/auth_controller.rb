@@ -18,46 +18,73 @@ module Api
       end
     end
 
-   def login
 
-  company = Company.find_by(email: params[:email])
+    def login
+ 
+  
+      company = Company.find_by(email: params[:email])
 
-  if company && company.authenticate(params[:password])
+      if company && company.authenticate(params[:password])
 
-    token = JsonWebToken.encode(company_id: company.id)
+        token = JsonWebToken.encode(company_id: company.id)
 
-   render json: {
-  message: "Login successful",
-  token: token,
-  type: "company",
-  company: company
-}
-    return
-  end
+        WelcomeNotificationJob
+          .set(wait: 15.seconds)
+          .perform_later(company.id, "company")
 
-  user = User.find_by(email: params[:email])
 
-  if user && user.authenticate(params[:password])
+        render json: {
+          message: "Login successful",
+          token: token,
+          type: "company",
+          company: company
+        }
 
-    token = JsonWebToken.encode(user_id: user.id)
+        return
+      end
 
-  render json: {
-  message: "Login successful",
-  token: token,
-  type: "user",
-  role: user.role,
-  user: user
-}
 
-  else
+     
+      user = User.find_by(email: params[:email])
 
-    render json: {
-      error: "Invalid email or password"
-    }, status: :unauthorized
+      if user && user.authenticate(params[:password])
 
-  end
+        token = JsonWebToken.encode(user_id: user.id)
 
-end
+
+  
+       if user.role == "hr"
+
+          WelcomeNotificationJob
+            .set(wait: 15.seconds)
+            .perform_later(user.id, "hr")
+
+        elsif user.role == "employee"
+
+          WelcomeNotificationJob
+          .set(wait: 15.seconds)
+            .perform_later(user.id, "employee")
+
+        end
+
+
+                render json: {
+                  message: "Login successful",
+                  token: token,
+                  type: "user",
+                  role: user.role,
+                  user: user
+                }
+
+              else
+
+                render json: {
+                  error: "Invalid email or password"
+                }, status: :unauthorized
+
+              end
+
+    end
 
 
     private

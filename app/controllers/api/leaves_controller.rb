@@ -55,40 +55,30 @@ if employee
 
   hr = User.find_by(id: employee.hr_id)
 
-  if hr
+ if hr
 
+  UserMailer
+    .leave_notification(hr, leave)
+    .deliver_now
 
-    # HR Mail
+  Notification.create!(
+  user_id: hr.id,
+  title: "New Leave Request",
+  message: "#{leave.employeename} applied for leave",
+  notification_type: "leave"
+)
 
-  begin
+  tokens = DeviceToken.where(user_id: hr.id).pluck(:token)
 
- UserMailer
-  .leave_notification(hr, leave)
-  .deliver_now  
-
-rescue => e
-
-  Rails.logger.error "LEAVE MAIL ERROR: #{e.message}"
+  tokens.each do |token|
+    FirebaseNotificationService.send_notification(
+      token,
+      "New Leave Request",
+      "#{leave.employeename} applied for leave"
+    )
+  end
 
 end
-
-    # HR Firebase Notification
-
-    tokens = DeviceToken.where(user_id: hr.id).pluck(:token)
-
-
-    tokens.each do |token|
-
-      FirebaseNotificationService.send_notification(
-        token,
-        "New Leave Request",
-        "#{leave.employeename} applied for leave"
-      )
-
-    end
-
-
-  end
 
 end
 
@@ -121,17 +111,10 @@ def update
 
       # Send Email to Employee
 
-     begin
+      UserMailer
+        .leave_status_notification(employee, leave)
+        .deliver_now
 
- UserMailer
-  .leave_status_notification(employee, leave)
-  .deliver_now
-
-rescue => e
-
-  Rails.logger.error "LEAVE STATUS MAIL ERROR: #{e.message}"
-
-end
 
 
       # Send Firebase Notification
@@ -139,33 +122,39 @@ end
       tokens = DeviceToken.where(user_id: employee.id).pluck(:token)
 
 
-      if leave.status == "approved"
+     if leave.status == "approved"
+
+ Notification.create!(
+  user_id: employee.id,
+  title: "Leave Approved",
+  message: "Your leave request has been approved.",
+  notification_type: "leave"
+)
+  tokens.each do |token|
+    FirebaseNotificationService.send_notification(
+      token,
+      "Leave Approved",
+      "Your leave request has been approved."
+    )
+  end
 
 
-        tokens.each do |token|
+     elsif leave.status == "rejected"
 
-          FirebaseNotificationService.send_notification(
-            token,
-            "Leave Approved",
-            "Your leave request has been approved."
-          )
+ Notification.create!(
+  user_id: employee.id,
+  title: "Leave Rejected",
+  message: "Your leave request has been rejected.",
+  notification_type: "leave"
+)
 
-        end
-
-
-      elsif leave.status == "rejected"
-
-
-        tokens.each do |token|
-
-          FirebaseNotificationService.send_notification(
-            token,
-            "Leave Rejected",
-            "Your leave request has been rejected."
-          )
-
-        end
-
+  tokens.each do |token|
+    FirebaseNotificationService.send_notification(
+      token,
+      "Leave Rejected",
+      "Your leave request has been rejected."
+    )
+  end
 
       end
 

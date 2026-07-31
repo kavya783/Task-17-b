@@ -37,39 +37,44 @@ module Api
 
 
 
-  def create
+    def create
 
-  hr = User.new(hr_params)
+      hr = User.new(hr_params)
 
-  hr.role = "hr"
-  hr.company_id = current_company.id
+      hr.role = "hr"
+      hr.company_id = current_company.id
 
 
-  if hr.save
+      if hr.save
 
- begin
-  UserMailer.hr_created(hr).deliver_now
-  Rails.logger.info "========== MAIL SENT SUCCESSFULLY =========="
-rescue => e
-  Rails.logger.error "========== MAIL ERROR =========="
-  Rails.logger.error e.message
-end
 
-  render json:{
-    message:"HR added successfully",
-    user:hr
-  },
-  status: :created
+        # HR welcome mail
 
-else
-    render json:{
-      errors: hr.errors.full_messages
-    },
-    status: :unprocessable_entity
+        UserMailer
+          .hr_created(hr)
+          .deliver_now
 
-  end
 
-end
+
+        render json:{
+          message:"HR added successfully",
+          user:hr
+        },
+        status: :created
+
+
+      else
+
+
+        render json:{
+          errors:hr.errors.full_messages
+        },
+        status: :unprocessable_entity
+
+
+      end
+
+    end
 
 
 
@@ -103,47 +108,33 @@ end
 
 
 
-def destroy
 
-  hr_email = @hr.email
-  hr_name = @hr.name
+    def destroy
 
-  if @hr.destroy
 
-    Rails.logger.info "HR DELETED SUCCESSFULLY"
+      hr_email = @hr.email
+      hr_name = @hr.name
 
-    begin
 
-      UserMailer.hr_deleted(
-        hr_email,
-        hr_name
-      ).deliver_now
+      if @hr.destroy
 
-      Rails.logger.info "DELETE MAIL SENT SUCCESSFULLY"
 
-    rescue => e
+        UserMailer
+          .hr_deleted(hr_email,hr_name)
+          .deliver_now
 
-      Rails.logger.error e
-      Rails.logger.error e.class.to_s
-      Rails.logger.error e.message
+
+
+        render json:{
+          message:"HR deleted successfully"
+        }
+
+
+      end
+
 
     end
 
-
-    render json:{
-      message:"HR deleted successfully"
-    }
-
-  else
-
-    render json:{
-      error:"HR delete failed"
-    },
-    status: :unprocessable_entity
-
-  end
-
-end
 
 
 

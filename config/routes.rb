@@ -6,19 +6,34 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
 
- namespace :api do
-  post "signup", to: "auth#signup"
-  post "login", to: "auth#login"
+  namespace :api do
 
-  resources :users, only: [:index, :create, :update, :destroy]
+    post "signup", to: "auth#signup"
+    post "login", to: "auth#login"
 
-  resources :hrs         
+    resources :users, only: [:index, :create, :update, :destroy]
 
-  resources :leaves
+    resources :hrs
 
-  resources :device_tokens, only: [:create, :index]
+    resources :leaves
 
-  post "save_fcm_token", to: "users#save_fcm_token"
-  post "send_notification", to: "notifications#create"
-end
+
+    resources :device_tokens, only: [:create, :index]
+
+  resources :notifications, only: [:index, :destroy] do
+  member do
+    put :mark_as_read
+  end
+
+  collection do
+    get :welcome
+  end
+end   
+
+    post "save_fcm_token", to: "users#save_fcm_token"
+
+    post "send_notification", to: "notifications#create"
+
+  end
+
 end

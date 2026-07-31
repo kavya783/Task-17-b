@@ -1,6 +1,4 @@
 class DeviceToken < ApplicationRecord
-  belongs_to :user
-
-  validates :user_id, uniqueness: true
-  validates :token, presence: true
+belongs_to :user, optional: true
+  belongs_to :company, optional: true
 end

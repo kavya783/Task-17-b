@@ -14,10 +14,7 @@ group :development, :test do
   gem "brakeman", require: false
   gem "rubocop-rails-omakase", require: false
 end
-
-gem "google-apis-gmail_v1"
-
-gem 'mail', '~> 2.7'
+gem "mail"
 
   gem "pg"
 
@@ -48,7 +45,7 @@ gem "sassc-rails"
 # Timezone
 gem "tzinfo-data", platforms: %i[windows jruby]
 
-gem "pry"
+gem "sidekiq"
 
 # Environment variables
 gem "dotenv-rails"
@@ -59,6 +56,8 @@ gem "bootsnap", require: false
 # Deployment
 gem "kamal", require: false
 gem "thruster", require: false
+
+gem "pry"
 
 # Active Storage
 gem "image_processing", "~> 1.2"

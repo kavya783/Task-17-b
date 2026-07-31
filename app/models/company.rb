@@ -2,22 +2,15 @@ class Company < ApplicationRecord
 
   has_secure_password
 
-
-  has_many :users,
-           dependent: :destroy
-
+  has_many :users, dependent: :destroy
 
   has_many :hrs,
            -> { where(role: :hr) },
-           class_name: "User",
-           foreign_key: "company_id"
-
+           class_name: "User"
 
   has_many :employees,
            -> { where(role: :employee) },
-           class_name: "User",
-           foreign_key: "company_id"
-
+           class_name: "User"
 
 
   def self.ransackable_associations(auth_object = nil)
