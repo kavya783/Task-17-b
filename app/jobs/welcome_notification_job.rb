@@ -20,19 +20,28 @@ class WelcomeNotificationJob < ApplicationJob
 
 
       tokens = DeviceToken.where(
-        company_id: company.id
-      ).pluck(:token)
+  company_id: company.id
+).pluck(:token)
 
+puts "COMPANY TOKENS: #{tokens.inspect}"
 
-      tokens.each do |token|
+     if tokens.present?
 
-        FirebaseNotificationService.send_notification(
-          token,
-          "Welcome",
-          "Welcome #{company.name} to WorkSphere Portal"
-        )
+  tokens.each do |token|
 
-      end
+    FirebaseNotificationService.send_notification(
+      token,
+      "Welcome",
+      "Welcome #{company.name} to WorkSphere Portal"
+    )
+
+  end
+
+else
+
+  puts "No device token found for company #{company.id}"
+
+end
 
 
     elsif type == "hr" || type == "employee"
