@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_24_070042) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_051744) do
   create_table "active_admin_comments", force: :cascade do |t|
     t.integer "author_id"
     t.string "author_type"
@@ -76,10 +76,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_24_070042) do
   end
 
   create_table "device_tokens", force: :cascade do |t|
+    t.integer "company_id"
     t.datetime "created_at", null: false
     t.string "token"
     t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
+    t.integer "user_id"
+    t.index ["company_id"], name: "index_device_tokens_on_company_id"
     t.index ["user_id"], name: "index_device_tokens_on_user_id", unique: true
   end
 
@@ -105,6 +107,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_24_070042) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "notifications", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "message"
+    t.string "notification_type"
+    t.boolean "read", default: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "address"
     t.integer "company_id"
@@ -121,5 +134,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_24_070042) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "device_tokens", "companies"
   add_foreign_key "device_tokens", "users"
+  add_foreign_key "notifications", "users"
 end
