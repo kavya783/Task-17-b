@@ -3,37 +3,32 @@ module Api
 
     before_action :authenticate_request
 
+def index
+  begin
+    Rails.logger.info "Current Company: #{current_company.inspect}"
+    Rails.logger.info "Current User: #{current_user.inspect}"
 
-   def index
+    if current_company
+      notifications = Notification.where(company_id: current_company.id)
+                                  .where.not(notification_type: "welcome")
 
-  if current_company
+    elsif current_user
+      notifications = Notification.where(user_id: current_user.id)
+                                  .where.not(notification_type: "welcome")
 
-    notifications = Notification.where(
-      company_id: current_company.id
-    ).where.not(
-      notification_type: "welcome"
-    )
+    else
+      notifications = []
+    end
 
+    render json: notifications.order(created_at: :desc)
 
-  elsif current_user
+  rescue => e
+    Rails.logger.error e.message
+    Rails.logger.error e.backtrace.join("\n")
 
-    notifications = Notification.where(
-      user_id: current_user.id
-    ).where.not(
-      notification_type: "welcome"
-    )
-
-  else
-
-    notifications = []
-
+    render json: { error: e.message }, status: :internal_server_error
   end
-
-
-  render json: notifications.order(created_at: :desc)
-
 end
-
 
    def welcome
 
