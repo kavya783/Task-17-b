@@ -57,9 +57,7 @@ if employee
 
  if hr
 
-  UserMailer
-    .leave_notification(hr, leave)
-    .deliver_now
+  
 
   Notification.create!(
   user_id: hr.id,
@@ -109,12 +107,7 @@ def update
     if employee
 
 
-      # Send Email to Employee
-
-      UserMailer
-        .leave_status_notification(employee, leave)
-        .deliver_now
-
+    
 
 
       # Send Firebase Notification
