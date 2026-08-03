@@ -108,6 +108,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_051744) do
   end
 
   create_table "notifications", force: :cascade do |t|
+    t.integer "company_id"
     t.datetime "created_at", null: false
     t.text "message"
     t.string "notification_type"
