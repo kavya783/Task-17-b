@@ -75,45 +75,28 @@ module Api
         return
       end
 
-      if leave.save
+     if leave.save
+  if current_user.role == "employee"
+    hr = User.find_by(id: current_user.hr_id)
 
+    if hr
+      LeaveNotificationJob.perform_later(
+        hr.id,
+        "New Leave Request",
+        "#{current_user.name} applied for leave"
+      )
+    end
+  end
 
-        if current_user.role == "employee"
-
-          hr = User.find_by(id: current_user.hr_id)
-
-          if hr
-
-            UserMailer
-              .leave_notification(hr, leave)
-              .deliver_now
-
-
-          LeaveNotificationJob.perform_later(
-  hr.id,
-  "New Leave Request",
-  "#{current_user.name} applied for leave"
-)
-          end
-
-        end
-
-
-        render json:{
-          message:"Leave applied successfully",
-          leave:leave
-        },
-        status: :created
-
-
-      else
-
-        render json:{
-          errors:leave.errors.full_messages
-        },
-        status: :unprocessable_entity
-
-      end
+  render json: {
+    message: "Leave applied successfully",
+    leave: leave
+  }, status: :created
+else
+  render json: {
+    errors: leave.errors.full_messages
+  }, status: :unprocessable_entity
+end
 
     end
 
@@ -125,43 +108,26 @@ module Api
       leave = Leave.find(params[:id])
 
 
-      if leave.update(leave_params)
+     if leave.update(leave_params)
+  employee = leave.leaveable
 
+  if employee
+    LeaveNotificationJob.perform_later(
+      employee.id,
+      "Leave #{leave.status}",
+      "Your leave request has been #{leave.status}"
+    )
+  end
 
-        employee = leave.leaveable
-
-
-        if employee
-
-
-          UserMailer
-            .leave_status_notification(employee,leave)
-            .deliver_now
-
-
-          LeaveNotificationJob.perform_later(
-  employee.id,
-  "Leave #{leave.status}",
-  "Your leave request has been #{leave.status}"
-)
-
-        end
-
-
-        render json:{
-          message:"Leave updated successfully",
-          leave:leave
-        }
-
-
-      else
-
-        render json:{
-          errors:leave.errors.full_messages
-        },
-        status: :unprocessable_entity
-
-      end
+  render json: {
+    message: "Leave updated successfully",
+    leave: leave
+  }
+else
+  render json: {
+    errors: leave.errors.full_messages
+  }, status: :unprocessable_entity
+end
 
     end
 
