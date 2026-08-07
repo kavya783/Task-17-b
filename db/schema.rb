@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_051744) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_041706) do
   create_table "active_admin_comments", force: :cascade do |t|
     t.integer "author_id"
     t.string "author_type"
@@ -95,16 +95,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_051744) do
   create_table "leaves", force: :cascade do |t|
     t.integer "company_id"
     t.datetime "created_at", null: false
-    t.string "email"
     t.string "employeename"
     t.date "from_date"
     t.integer "hr_id"
     t.string "leaveType"
+    t.integer "leaveable_id"
+    t.string "leaveable_type"
     t.string "profileImage"
     t.text "reason"
     t.string "status"
     t.date "to_date"
     t.datetime "updated_at", null: false
+    t.index ["leaveable_type", "leaveable_id"], name: "index_leaves_on_leaveable"
   end
 
   create_table "notifications", force: :cascade do |t|

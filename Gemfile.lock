@@ -530,6 +530,7 @@ DEPENDENCIES
   jwt
   kamal
   mail
+  mini_magick
   pg
   propshaft
   pry

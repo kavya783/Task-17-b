@@ -8,11 +8,13 @@ module Api
 
 
     def index
+      company_id = current_user&.company_id || current_company&.id
 
-      hrs = User.where(
-        company_id: current_company.id,
-        role: User.roles[:hr]
-      )
+      hrs = if company_id.present?
+              User.where(company_id: company_id, role: :hr)
+            else
+              User.none
+            end
 
       render json: hrs.map { |hr|
         {
@@ -24,7 +26,6 @@ module Api
           profile_image_url: hr.profile_image.attached? ? url_for(hr.profile_image) : nil
         }
       }
-
     end
 
 
@@ -42,10 +43,15 @@ module Api
       hr = User.new(hr_params)
 
       hr.role = "hr"
-      hr.company_id = current_company.id
+      hr.company_id = current_user&.company_id || current_company&.id
 
+      if hr.company_id.blank?
+        render json: { error: "Company not found" }, status: :unprocessable_entity
+        return
+      end
 
       if hr.save
+        attach_compressed_image(hr) if params[:profile_image].present?
 
 
         # HR welcome mail
@@ -84,6 +90,7 @@ module Api
 
 
       if @hr.update(hr_params)
+        attach_compressed_image(@hr) if params[:profile_image].present?
 
         render json:{
           message:"HR updated successfully",
@@ -109,31 +116,22 @@ module Api
 
 
 
-    def destroy
+def destroy
+  hr_email = @hr.email
+  hr_name = @hr.name
 
+  if @hr.destroy
+    UserMailer.hr_deleted(hr_email, hr_name).deliver_now
 
-      hr_email = @hr.email
-      hr_name = @hr.name
-
-
-      if @hr.destroy
-
-
-        UserMailer
-          .hr_deleted(hr_email,hr_name)
-          .deliver_now
-
-
-
-        render json:{
-          message:"HR deleted successfully"
-        }
-
-
-      end
-
-
-    end
+    render json: {
+      message: "HR deleted successfully"
+    }
+  else
+    render json: {
+      errors: @hr.errors.full_messages
+    }, status: :unprocessable_entity
+  end
+end
 
 
 
@@ -173,12 +171,26 @@ module Api
         :name,
         :email,
         :password,
-        :address,
-        :profile_image
+        :address
       )
 
     end
 
+    def attach_compressed_image(user)
+      compressed = ImageCompressionService.compress(
+        params[:profile_image]
+      )
+
+      File.open(compressed.path) do |file|
+        user.profile_image.attach(
+          io: file,
+          filename: "compressed_image.jpg",
+          content_type: "image/jpeg"
+        )
+      end
+    ensure
+      compressed&.close!
+    end
 
   end
 

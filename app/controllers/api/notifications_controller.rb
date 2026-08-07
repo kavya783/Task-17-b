@@ -3,32 +3,37 @@ module Api
 
     before_action :authenticate_request
 
-def index
-  begin
-    Rails.logger.info "Current Company: #{current_company.inspect}"
-    Rails.logger.info "Current User: #{current_user.inspect}"
 
-    if current_company
-      notifications = Notification.where(company_id: current_company.id)
-                                  .where.not(notification_type: "welcome")
+   def index
 
-    elsif current_user
-      notifications = Notification.where(user_id: current_user.id)
-                                  .where.not(notification_type: "welcome")
+  if current_company
 
-    else
-      notifications = []
-    end
+    notifications = Notification.where(
+      company_id: current_company.id
+    ).where.not(
+      notification_type: "welcome"
+    )
 
-    render json: notifications.order(created_at: :desc)
 
-  rescue => e
-    Rails.logger.error e.message
-    Rails.logger.error e.backtrace.join("\n")
+  elsif current_user
 
-    render json: { error: e.message }, status: :internal_server_error
+    notifications = Notification.where(
+      user_id: current_user.id
+    ).where.not(
+      notification_type: "welcome"
+    )
+
+  else
+
+    notifications = []
+
   end
+
+
+  render json: notifications.order(created_at: :desc)
+
 end
+
 
    def welcome
 
@@ -66,25 +71,23 @@ end
       notification.update(read: true)
 
       render json: {
-        message: "Notification marked as read"
+        message: "Notification  as read"
       }
 
     end
-      def create
+    def create
+  employee = User.find(params[:employee_id])
 
-            employee = Employee.find(params[:employee_id])
+  FirebaseNotificationService.send_notification(
+    employee.fcm_token,
+    params[:title],
+    params[:body]
+  )
 
-            FirebaseNotificationService.send_notification(
-              employee.fcm_token,
-              params[:title],
-              params[:body]
-            )
-
-            render json: {
-              message: "Notification sent successfully"
-            }
-
-          end
+  render json: {
+    message: "Notification sent successfully"
+  }
+end
     def destroy
 
       notification = Notification.find(params[:id])

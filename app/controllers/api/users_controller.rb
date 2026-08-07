@@ -8,51 +8,44 @@ module Api
 
 
     # GET /api/users
-   def index
+    def index
 
-  if current_user.role == "company"
+      if current_company
 
-    users = User.where(
-      company_id: current_user.id,
-      role: "hr"
-    )
+        users = User.where(
+          company_id: current_company.id,
+          role: "hr"
+        )
 
+      elsif current_user&.role == "hr"
 
-  elsif current_user.role == "hr"
+        users = User.where(
+          hr_id: current_user.id,
+          role: "employee"
+        )
 
-    users = User.where(
-      hr_id: current_user.id,
-      role: "employee"
-    )
+      elsif current_user&.role == "employee"
 
+        users = User.where(
+          id: current_user.id
+        )
 
-  elsif current_user.role == "employee"
+      else
 
-    users = User.where(
-      id: current_user.id,
-      role: "employee"
-    )
+        users = []
 
+      end
 
-  else
+      render json: users.map { |user|
+        user.as_json.merge(
+          profile_image_url:
+            user.profile_image.attached? ?
+            url_for(user.profile_image) :
+            nil
+        )
+      }
 
-    users = []
-
-  end
-
-
-  render json: users.map { |user|
-
-    user.as_json.merge(
-      profile_image_url:
-      user.profile_image.attached? ?
-      url_for(user.profile_image) :
-      nil
-    )
-
-  }
-
-end
+    end
 
 
 
@@ -77,23 +70,21 @@ end
    
 def create
 
-  Rails.logger.info "PARAMS ===== #{user_params.inspect}"
-  Rails.logger.info "CURRENT COMPANY ===== #{current_company.inspect}"
-
-
   user = User.new(user_params)
 
 
   if user.role == "hr"
-  user.company_id = current_company.id
+    user.company_id = current_company.id
 
-elsif user.role == "employee"
-  user.company_id = current_user.company_id
-  user.hr_id = current_user.id
-end
+  elsif user.role == "employee"
+    user.company_id = current_user.company_id
+    user.hr_id = current_user.id
+  end
 
 
   if user.save
+
+    attach_compressed_image(user) if params[:profile_image].present?
 
     render json:{
       message:"#{user.role} created successfully",
@@ -101,10 +92,7 @@ end
     },
     status: :created
 
-
   else
-
-    Rails.logger.info "USER ERRORS ===== #{user.errors.full_messages}"
 
     render json:{
       errors:user.errors.full_messages
@@ -115,46 +103,42 @@ end
 
 end
 # PATCH /api/users/:id
-    def update
 
+def update
 
-      user = User.find(params[:id])
+  user = User.find(params[:id])
 
+  if user.update(user_params)
 
-      if user.update(user_params)
+    attach_compressed_image(user) if params[:profile_image].present?
 
+    render json: {
 
-        render json: {
+      message: "Updated successfully",
 
-          message: "Updated successfully",
+      user: user.as_json.merge(
 
-          user: user.as_json.merge(
+        profile_image_url:
+        user.profile_image.attached? ?
+        url_for(user.profile_image) :
+        nil
 
-            profile_image_url:
-            user.profile_image.attached? ?
-            url_for(user.profile_image) :
-            nil
+      )
 
-          )
+    }
 
-        }
+  else
 
+    render json: {
 
-      else
+      errors: user.errors.full_messages
 
+    },
+    status: :unprocessable_entity
 
-        render json: {
+  end
 
-          errors: user.errors.full_messages
-
-        },
-        status: :unprocessable_entity
-
-
-      end
-
-
-    end
+end
     # DELETE /api/users/:id
     def destroy
 
@@ -223,33 +207,41 @@ end
 
 
 
-    private
+  private
+
+      def user_params
+
+        params[:role] = params[:role].to_s.downcase
+
+        params.permit(
+          :name,
+          :email,
+          :password,
+          :role,
+          :address,
+          :salary,
+          :company_id,
+          :hr_id
+        )
+
+      end
 
 
+      def attach_compressed_image(user)
 
-    def user_params
+        compressed = ImageCompressionService.compress(
+          params[:profile_image]
+        )
 
+        File.open(compressed.path) do |file|
 
-      params[:role] =
-        params[:role].to_s.downcase
-
-
-
-     params.permit(
-  :name,
-  :email,
-  :password,
-  :role,
-  :address,
-  :salary,
-  :profile_image,
-  :company_id,
-  :hr_id
-)
-
-
-    end
-
+          user.profile_image.attach(
+            io: file,
+            filename: "compressed_image.jpg",
+            content_type: "image/jpeg"
+          )
+      end
 
   end
+end
 end

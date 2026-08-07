@@ -61,7 +61,7 @@ gem "pry"
 
 # Active Storage
 gem "image_processing", "~> 1.2"
-
+gem "mini_magick"
 group :development do
   gem "web-console"
 end

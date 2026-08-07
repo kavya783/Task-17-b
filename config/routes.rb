@@ -20,7 +20,7 @@ Rails.application.routes.draw do
 
     resources :device_tokens, only: [:create, :index]
 
-  resources :notifications, only: [:index, :destroy] do
+  resources :notifications, only: [:index, :create, :destroy] do
   member do
     put :mark_as_read
   end
