@@ -25,7 +25,7 @@ module Api
 
   if device_token.save
     render json:{
-      message:"Device token saved"
+      # message:"Device token saved"
     }
   else
     render json:{
