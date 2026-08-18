@@ -206,7 +206,7 @@ end
 
 
 
- def update
+   def update
   leave = Leave.find_by(id: params[:id])
 
   unless leave
@@ -217,14 +217,13 @@ end
   if leave.update(leave_params)
     employee = leave.leaveable
 
-    # Notification should not make leave update fail
     if employee
       begin
         UserMailer
           .leave_status_notification(employee, leave)
           .deliver_now
       rescue => e
-        Rails.logger.error "Leave status mail failed: #{e.message}"
+        Rails.logger.error "Leave status mail failed: #{e.class} - #{e.message}"
       end
 
       begin
@@ -234,7 +233,7 @@ end
           "Your leave request has been #{leave.status}"
         )
       rescue => e
-        Rails.logger.error "Leave notification job failed: #{e.message}"
+        Rails.logger.error "Leave notification job failed: #{e.class} - #{e.message}"
       end
     end
 
@@ -272,7 +271,6 @@ rescue => e
     details: e.message
   }, status: :internal_server_error
 end
-
 
 
 
