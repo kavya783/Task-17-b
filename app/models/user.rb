@@ -1,6 +1,17 @@
 class User < ApplicationRecord
   has_secure_password
 
+  belongs_to :company, optional: true
+
+  belongs_to :hr,
+             class_name: "User",
+             optional: true
+
+  has_many :employees,
+           class_name: "User",
+           foreign_key: "hr_id",
+           dependent: :destroy
+
   has_many :leaves,
            class_name: "Leave",
            as: :leaveable,
@@ -11,17 +22,11 @@ class User < ApplicationRecord
 
   has_one_attached :profile_image
 
-  belongs_to :company, optional: true
-
-  has_many :employees,
-           class_name: "User",
-           foreign_key: "hr_id",
-           dependent: :destroy
-
   enum :role, {
     employee: 0,
     hr: 1
   }
+
 
   def self.ransackable_attributes(auth_object = nil)
     [

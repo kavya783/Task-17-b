@@ -5,6 +5,23 @@ class Leave < ApplicationRecord
 
   belongs_to :leaveable, polymorphic: true
 
+  # Lambda / Scopes
+  scope :pending, -> {
+    where(status: "pending")
+  }
+
+  scope :approved, -> {
+    where(status: "approved")
+  }
+
+  scope :rejected, -> {
+    where(status: "rejected")
+  }
+
+  scope :recent, -> {
+    order(created_at: :desc)
+  }
+
   def self.ransackable_associations(auth_object = nil)
     ["leaveable"]
   end
@@ -16,7 +33,7 @@ class Leave < ApplicationRecord
       "leaveable_type",
       "leaveType",
       "from_date",
-      "to_date",
+      "to_date",  
       "reason",
       "status",
       "created_at",

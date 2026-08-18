@@ -4,34 +4,41 @@ module Api
     before_action :authenticate_request
 
 
-   def index
-
+def index
   if current_company
 
-    notifications = Notification.where(
-      company_id: current_company.id
-    ).where.not(
-      notification_type: "welcome"
-    )
-
+    notifications = Notification
+      .where(company_id: current_company.id)
+      .where.not(notification_type: "welcome")
+      .preload(:company)
+      .order(created_at: :desc)
 
   elsif current_user
 
-    notifications = Notification.where(
-      user_id: current_user.id
-    ).where.not(
-      notification_type: "welcome"
-    )
+    notifications = Notification
+      .where(user_id: current_user.id)
+      .where.not(notification_type: "welcome")
+      .preload(:user)
+      .order(created_at: :desc)
 
   else
 
-    notifications = []
+    notifications = Notification.none
 
   end
 
-
-  render json: notifications.order(created_at: :desc)
-
+  render json: notifications.map { |notification|
+    {
+      id: notification.id,
+      title: notification.title,
+      message: notification.message,
+      notification_type: notification.notification_type,
+      read: notification.read,
+      created_at: notification.created_at,
+      user_name: notification.user&.name,
+      user_email: notification.user&.email
+    }
+  }
 end
 
 

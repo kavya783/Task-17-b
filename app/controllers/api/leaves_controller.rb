@@ -3,63 +3,149 @@ module Api
     before_action :authenticate_request
 
 
-  def index
-    applied_by = params[:applied_by].presence
+def index
+  applied_by = params[:applied_by].presence
 
-    # determine company context from user or company token
-    company_id = current_user&.company_id || current_company&.id
+  company_id = current_user&.company_id || current_company&.id
 
-    leaves = if current_user&.role == "hr"
-               if applied_by == "employee" || applied_by.blank?
-                 employee_ids = company_id.present? ? User.where(company_id: company_id, role: "employee").pluck(:id) : []
-                 Leave.where(leaveable_type: "User", leaveable_id: employee_ids).order(created_at: :desc)
-               else
-                 Leave.where(leaveable_type: "User", leaveable_id: current_user.id).order(created_at: :desc)
-               end
-      elsif current_user&.role == "employee"
+  leaves =
+    if current_user&.role == "hr"
 
-        leaves = Leave.where(
+      if applied_by == "employee" || applied_by.blank?
+
+        employee_ids =
+          if company_id.present?
+            User.where(
+              company_id: company_id,
+              role: :employee
+            ).pluck(:id)
+          else
+            []
+          end
+
+        Leave
+          .where(
+            leaveable_type: "User",
+            leaveable_id: employee_ids
+          )
+          .includes(:leaveable)
+          .recent
+
+      else
+
+        Leave
+          .where(
+            leaveable_type: "User",
+            leaveable_id: current_user.id
+          )
+          .includes(:leaveable)
+          .recent
+
+      end
+
+    elsif current_user&.role == "employee"
+
+      Leave
+        .where(
           leaveable_type: "User",
           leaveable_id: current_user.id
-        ).order(created_at: :desc)
-                  elsif current_company.present?
-                    if applied_by == "employee"
-                      employee_ids = User.where(company_id: current_company.id, role: "employee").pluck(:id)
-                      Leave.where(leaveable_type: "User", leaveable_id: employee_ids).order(created_at: :desc)
-                    else
-                      hr_ids = User.where(company_id: current_company.id, role: "hr").pluck(:id)
-                      Leave.where(leaveable_type: "User", leaveable_id: hr_ids).order(created_at: :desc)
-                    end
-                  else
-                    Leave.none
-                  end
+        )
+        .includes(:leaveable)
+        .order(created_at: :desc)
 
-          render json: leaves.map { |leave|
-            user = leave.leaveable
+    elsif current_company.present?
 
-          {
-            id: leave.id,
-            employeename: leave.employeename || user&.name,
-            email: user&.email,
-            leaveType: leave.leaveType,
-            from_date: leave.from_date,
-            to_date: leave.to_date,
-            reason: leave.reason,
-            status: (leave.status.presence || "pending").downcase,
-            profile_image_url: leave.profileImage
-          }
-        }
-  end
-    def show
+      if applied_by == "employee"
 
-      leave = Leave.find(params[:id])
+        employee_ids = User
+          .where(
+            company_id: current_company.id,
+            role: :employee
+          )
+          .pluck(:id)
 
-      render json:{
-        message:"Leave details fetched successfully",
-        leave:leave
-      }
+        Leave
+          .where(
+            leaveable_type: "User",
+            leaveable_id: employee_ids
+          )
+          .includes(:leaveable)
+          .order(created_at: :desc)
 
+      else
+
+        hr_ids = User
+          .where(
+            company_id: current_company.id,
+            role: :hr
+          )
+          .pluck(:id)
+
+        Leave
+          .where(
+            leaveable_type: "User",
+            leaveable_id: hr_ids
+          )
+          .includes(:leaveable)
+          .order(created_at: :desc)
+
+      end
+
+    else
+      Leave.none
     end
+ 
+    result = leaves.map do |leave|
+  user = leave.leaveable
+
+  {
+    id: leave.id,
+    employeename: user&.name || leave.employeename,
+    email: user&.email,
+    leaveType: leave.leaveType,
+    from_date: leave.from_date,
+    to_date: leave.to_date,
+    reason: leave.reason,
+    status: leave.status.presence || "pending"
+  }
+end
+
+Rails.logger.info "🔥 FINAL LEAVE RESPONSE: #{result.inspect}"
+
+render json: result
+end
+  def show
+  leave = Leave
+    .includes(:leaveable)
+    .find_by(id: params[:id])
+
+  unless leave
+    render json: { error: "Leave not found" }, status: :not_found
+    return
+  end
+
+  user = leave.leaveable
+
+  profile_image_url =
+    if user&.profile_image&.attached?
+      url_for(user.profile_image)
+    end
+
+  render json: {
+    message: "Leave details fetched successfully",
+    leave: {
+      id: leave.id,
+      employeename: user&.name || leave.employeename,
+      email: user&.email,
+      leaveType: leave.leaveType,
+      from_date: leave.from_date,
+      to_date: leave.to_date,
+      reason: leave.reason,
+      status: leave.status.presence || "pending",
+      profile_image_url: profile_image_url
+    }
+  }
+end
 
 
 
@@ -75,28 +161,45 @@ module Api
         return
       end
 
-     if leave.save
-  if current_user.role == "employee"
-    hr = User.find_by(id: current_user.hr_id)
+      if leave.save
 
-    if hr
-      LeaveNotificationJob.perform_later(
-        hr.id,
-        "New Leave Request",
-        "#{current_user.name} applied for leave"
-      )
-    end
-  end
 
-  render json: {
-    message: "Leave applied successfully",
-    leave: leave
-  }, status: :created
-else
-  render json: {
-    errors: leave.errors.full_messages
-  }, status: :unprocessable_entity
-end
+        if current_user.role == "employee"
+
+          hr = User.find_by(id: current_user.hr_id)
+
+          if hr
+
+            UserMailer
+              .leave_notification(hr, leave)
+              .deliver_now
+
+
+          LeaveNotificationJob.perform_later(
+  hr.id,
+  "New Leave Request",
+  "#{current_user.name} applied for leave"
+)
+          end
+
+        end
+
+
+        render json:{
+          message:"Leave applied successfully",
+          leave:leave
+        },
+        status: :created
+
+
+      else
+
+        render json:{
+          errors:leave.errors.full_messages
+        },
+        status: :unprocessable_entity
+
+      end
 
     end
 
@@ -108,26 +211,43 @@ end
       leave = Leave.find(params[:id])
 
 
-     if leave.update(leave_params)
-  employee = leave.leaveable
+      if leave.update(leave_params)
 
-  if employee
-    LeaveNotificationJob.perform_later(
-      employee.id,
-      "Leave #{leave.status}",
-      "Your leave request has been #{leave.status}"
-    )
-  end
 
-  render json: {
-    message: "Leave updated successfully",
-    leave: leave
-  }
-else
-  render json: {
-    errors: leave.errors.full_messages
-  }, status: :unprocessable_entity
-end
+        employee = leave.leaveable
+
+
+        if employee
+
+
+          UserMailer
+            .leave_status_notification(employee,leave)
+            .deliver_now
+
+
+          LeaveNotificationJob.perform_later(
+  employee.id,
+  "Leave #{leave.status}",
+  "Your leave request has been #{leave.status}"
+)
+
+        end
+
+
+        render json:{
+          message:"Leave updated successfully",
+          leave:leave
+        }
+
+
+      else
+
+        render json:{
+          errors:leave.errors.full_messages
+        },
+        status: :unprocessable_entity
+
+      end
 
     end
 
