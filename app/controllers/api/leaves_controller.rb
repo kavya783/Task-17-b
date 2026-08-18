@@ -206,50 +206,72 @@ end
 
 
 
-    def update
+ def update
+  leave = Leave.find_by(id: params[:id])
 
-      leave = Leave.find(params[:id])
+  unless leave
+    render json: { error: "Leave not found" }, status: :not_found
+    return
+  end
 
+  if leave.update(leave_params)
+    employee = leave.leaveable
 
-      if leave.update(leave_params)
-
-
-        employee = leave.leaveable
-
-
-        if employee
-
-
-          UserMailer
-            .leave_status_notification(employee,leave)
-            .deliver_now
-
-
-          LeaveNotificationJob.perform_later(
-  employee.id,
-  "Leave #{leave.status}",
-  "Your leave request has been #{leave.status}"
-)
-
-        end
-
-
-        render json:{
-          message:"Leave updated successfully",
-          leave:leave
-        }
-
-
-      else
-
-        render json:{
-          errors:leave.errors.full_messages
-        },
-        status: :unprocessable_entity
-
+    # Notification should not make leave update fail
+    if employee
+      begin
+        UserMailer
+          .leave_status_notification(employee, leave)
+          .deliver_now
+      rescue => e
+        Rails.logger.error "Leave status mail failed: #{e.message}"
       end
 
+      begin
+        LeaveNotificationJob.perform_later(
+          employee.id,
+          "Leave #{leave.status}",
+          "Your leave request has been #{leave.status}"
+        )
+      rescue => e
+        Rails.logger.error "Leave notification job failed: #{e.message}"
+      end
     end
+
+    render json: {
+      message: "Leave updated successfully",
+      leave: {
+        id: leave.id,
+        employeename: employee&.name || leave.employeename,
+        email: employee&.email,
+        leaveType: leave.leaveType,
+        from_date: leave.from_date,
+        to_date: leave.to_date,
+        reason: leave.reason,
+        status: leave.status
+      }
+    }, status: :ok
+
+  else
+    render json: {
+      errors: leave.errors.full_messages
+    }, status: :unprocessable_entity
+  end
+
+rescue ActionController::ParameterMissing => e
+  render json: {
+    error: e.message
+  }, status: :bad_request
+
+rescue => e
+  Rails.logger.error "Leave update error: #{e.class} - #{e.message}"
+  Rails.logger.error e.backtrace.first(10).join("\n")
+
+  render json: {
+    error: "Unable to update leave",
+    details: e.message
+  }, status: :internal_server_error
+end
 
 
 
