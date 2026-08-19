@@ -12,16 +12,12 @@ module Api
             user_id: current_user.id
           )
 
-        device_token.company_id = nil
-
       elsif current_company
 
         device_token =
           DeviceToken.find_or_initialize_by(
             company_id: current_company.id
           )
-
-        device_token.user_id = nil
 
       else
 
@@ -31,23 +27,12 @@ module Api
 
       end
 
-      token = params[:token].presence
-
-      if token.blank?
-
-        return render json: {
-          error: "FCM token is required"
-        }, status: :unprocessable_entity
-
-      end
-
-      device_token.token = token
+      device_token.token = params[:token]
 
       if device_token.save
 
         Rails.logger.info(
-          "FCM token saved successfully for " \
-          "#{current_user ? "user #{current_user.id}" : "company #{current_company.id}"}"
+          "FCM TOKEN SAVED - User: #{current_user&.id}, Company: #{current_company&.id}"
         )
 
         render json: {

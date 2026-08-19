@@ -1,16 +1,10 @@
 class LeaveNotificationJob < ApplicationJob
+
   queue_as :default
 
   def perform(user_id, title, message)
 
-    user = User.find_by(id: user_id)
-
-    unless user
-      Rails.logger.error(
-        "LeaveNotificationJob: User #{user_id} not found"
-      )
-      return
-    end
+    user = User.find(user_id)
 
     # Save notification in database
     Notification.create!(
@@ -20,19 +14,33 @@ class LeaveNotificationJob < ApplicationJob
       notification_type: "leave"
     )
 
-    # Get ALL FCM tokens for this user
-    device_tokens = DeviceToken.where(user_id: user.id)
+    Rails.logger.info(
+      "FCM: Checking tokens for user #{user.id}"
+    )
+
+    device_tokens =
+      DeviceToken.where(user_id: user.id)
 
     if device_tokens.empty?
+
       Rails.logger.warn(
         "No FCM token found for user #{user.id} (#{user.email})"
       )
+
       return
     end
+
+    Rails.logger.info(
+      "FCM: Found #{device_tokens.count} token(s) for user #{user.id}"
+    )
 
     device_tokens.find_each do |device_token|
 
       begin
+
+        Rails.logger.info(
+          "FCM: Sending notification to token #{device_token.id}"
+        )
 
         FirebaseNotificationService.send_notification(
           device_token.token,
@@ -41,7 +49,7 @@ class LeaveNotificationJob < ApplicationJob
         )
 
         Rails.logger.info(
-          "FCM notification sent to user #{user.id}, token #{device_token.id}"
+          "FCM: Notification sent successfully to token #{device_token.id}"
         )
 
       rescue => e
@@ -51,27 +59,20 @@ class LeaveNotificationJob < ApplicationJob
           "token #{device_token.id}: #{e.message}"
         )
 
-        # Remove invalid Firebase token
-        if e.message.include?("UNREGISTERED") ||
-           e.message.include?("registration-token-not-registered")
+        if e.message.include?("UNREGISTERED")
 
-          device_token.destroy!
+          device_token.destroy
 
           Rails.logger.info(
             "Deleted invalid FCM token #{device_token.id}"
           )
+
         end
 
       end
 
     end
 
-  rescue => e
-
-    Rails.logger.error(
-      "LeaveNotificationJob failed: #{e.class} - #{e.message}"
-    )
-
-    raise e
   end
+
 end
