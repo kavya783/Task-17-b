@@ -4,134 +4,85 @@ require "json"
 
 class FirebaseNotificationService
 
-  FIREBASE_SCOPE =
-    "https://www.googleapis.com/auth/firebase.messaging"
-
   def self.send_notification(device_token, title, body)
-    raise ArgumentError, "FCM device token is missing" if device_token.blank?
 
     project_id = ENV["FIREBASE_PROJECT_ID"]
 
-    raise "FIREBASE_PROJECT_ID is not configured" if project_id.blank?
+    raise "FIREBASE_PROJECT_ID is missing" if project_id.blank?
+
+    scope = [
+      "https://www.googleapis.com/auth/firebase.messaging"
+    ]
 
     key_path =
       if Rails.env.production?
         "/etc/secrets/serviceAccountKey.json"
       else
-        Rails.root.join("config", "serviceAccountKey.json").to_s
+        Rails.root.join(
+          "config",
+          "serviceAccountKey.json"
+        )
       end
 
-    unless File.exist?(key_path)
-      raise "Firebase service account file not found: #{key_path}"
-    end
-
-    # --------------------------------------------------
-    # Create Google credentials
-    # --------------------------------------------------
-
-    authorizer = Google::Auth::ServiceAccountCredentials.make_creds(
-      json_key_io: File.open(key_path),
-      scope: FIREBASE_SCOPE
-    )
+    authorizer =
+      Google::Auth::ServiceAccountCredentials.make_creds(
+        json_key_io: File.open(key_path),
+        scope: scope
+      )
 
     authorizer.fetch_access_token!
 
     access_token = authorizer.access_token
 
-    # --------------------------------------------------
-    # Firebase FCM URL
-    # --------------------------------------------------
-
     uri = URI(
-      "https://fcm.googleapis.com/v1/projects/#{project_id}/messages:send"
+      "https://fcm.googleapis.com/v1/projects/" \
+      "#{project_id}/messages:send"
     )
 
-    # --------------------------------------------------
-    # HTTP request
-    # --------------------------------------------------
+    http = Net::HTTP.new(
+      uri.host,
+      uri.port
+    )
 
-    http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
 
-    request = Net::HTTP::Post.new(uri.request_uri)
+    request = Net::HTTP::Post.new(
+      uri.request_uri
+    )
 
-    request["Authorization"] = "Bearer #{access_token}"
-    request["Content-Type"] = "application/json"
+    request["Authorization"] =
+      "Bearer #{access_token}"
 
-    # --------------------------------------------------
-    # FCM payload
-    # --------------------------------------------------
+    request["Content-Type"] =
+      "application/json"
 
     request.body = {
       message: {
         token: device_token,
-
         notification: {
-          title: title.to_s,
-          body: body.to_s
-        },
-
-        # Optional data for frontend
-        data: {
-          title: title.to_s,
-          body: body.to_s,
-          type: "leave"
+          title: title,
+          body: body
         }
       }
     }.to_json
 
-    # --------------------------------------------------
-    # Send request
-    # --------------------------------------------------
-
     response = http.request(request)
 
-    response_body =
-      begin
-        JSON.parse(response.body)
-      rescue JSON::ParserError
-        {
-          "raw_response" => response.body
-        }
-      end
-
-    # --------------------------------------------------
-    # Success
-    # --------------------------------------------------
-
-    if response.is_a?(Net::HTTPSuccess)
+    if response.code.to_i == 200
 
       Rails.logger.info(
         "FCM notification sent successfully"
       )
 
-      return true
-    end
+      true
 
-    # --------------------------------------------------
-    # Invalid / expired FCM token
-    # --------------------------------------------------
-
-    if response_body.to_s.include?("UNREGISTERED")
+    else
 
       Rails.logger.error(
-        "FCM token is UNREGISTERED: #{device_token}"
+        "FCM notification failed: #{response.body}"
       )
 
-      raise StandardError,
-            "UNREGISTERED: FCM token is no longer valid"
+      raise StandardError, response.body
     end
-
-    # --------------------------------------------------
-    # Other Firebase errors
-    # --------------------------------------------------
-
-    Rails.logger.error(
-      "FCM notification failed. HTTP #{response.code}: #{response.body}"
-    )
-
-    raise StandardError,
-          "FCM notification failed: #{response.body}"
   end
-
 end
