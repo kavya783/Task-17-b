@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_06_041706) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_19_054607) do
   create_table "active_admin_comments", force: :cascade do |t|
     t.integer "author_id"
     t.string "author_type"
@@ -106,6 +106,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_041706) do
     t.string "status"
     t.date "to_date"
     t.datetime "updated_at", null: false
+    t.index ["company_id", "created_at"], name: "index_leaves_on_company_and_created_at"
+    t.index ["leaveable_type", "leaveable_id", "created_at"], name: "index_leaves_on_leaveable_and_created_at"
     t.index ["leaveable_type", "leaveable_id"], name: "index_leaves_on_leaveable"
   end
 

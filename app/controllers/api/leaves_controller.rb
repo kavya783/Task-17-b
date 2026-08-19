@@ -5,95 +5,27 @@ module Api
     # GET /api/leaves
     def index
       applied_by = params[:applied_by].presence
-
       company_id = current_user&.company_id || current_company&.id
 
       leaves =
-        if current_user&.role == "hr"
+        case current_user&.role
+        when "hr"
+          hr_leaves(company_id, applied_by)
 
-          if applied_by == "employee" || applied_by.blank?
-
-            employee_ids =
-              if company_id.present?
-                User.where(
-                  company_id: company_id,
-                  role: :employee
-                ).pluck(:id)
-              else
-                []
-              end
-
-            Leave
-              .where(
-                leaveable_type: "User",
-                leaveable_id: employee_ids
-              )
-              .includes(:leaveable)
-              .recent
-
-          else
-
-            Leave
-              .where(
-                leaveable_type: "User",
-                leaveable_id: current_user.id
-              )
-              .includes(:leaveable)
-              .recent
-
-          end
-
-        elsif current_user&.role == "employee"
-
-          Leave
-            .where(
-              leaveable_type: "User",
-              leaveable_id: current_user.id
-            )
-            .includes(:leaveable)
-            .order(created_at: :desc)
-
-        elsif current_company.present?
-
-          if applied_by == "employee"
-
-            employee_ids = User
-              .where(
-                company_id: current_company.id,
-                role: :employee
-              )
-              .pluck(:id)
-
-            Leave
-              .where(
-                leaveable_type: "User",
-                leaveable_id: employee_ids
-              )
-              .includes(:leaveable)
-              .order(created_at: :desc)
-
-          else
-
-            hr_ids = User
-              .where(
-                company_id: current_company.id,
-                role: :hr
-              )
-              .pluck(:id)
-
-            Leave
-              .where(
-                leaveable_type: "User",
-                leaveable_id: hr_ids
-              )
-              .includes(:leaveable)
-              .order(created_at: :desc)
-
-          end
+        when "employee"
+          employee_leaves
 
         else
-          Leave.none
+          company_leaves(company_id, applied_by)
         end
+
+      # Pagination
+      page = params.fetch(:page, 1).to_i
+      per_page = params.fetch(:per_page, 10).to_i.clamp(1, 50)
+
+      leaves = leaves
+        .page(page)
+        .per(per_page)
 
       result = leaves.map do |leave|
         user = leave.leaveable
@@ -110,11 +42,14 @@ module Api
         }
       end
 
-      Rails.logger.info "🔥 FINAL LEAVE RESPONSE: #{result.inspect}"
-
-      render json: result, status: :ok
+      render json: {
+        leaves: result,
+        current_page: leaves.current_page,
+        total_pages: leaves.total_pages,
+        total_count: leaves.total_count,
+        per_page: leaves.limit_value
+      }, status: :ok
     end
-
 
     # GET /api/leaves/:id
     def show
@@ -152,7 +87,6 @@ module Api
       }, status: :ok
     end
 
-
     # POST /api/leaves
     def create
       leave = Leave.new(leave_params)
@@ -169,14 +103,13 @@ module Api
 
       if leave.save
 
-        # Send notification only for employee leave
         if current_user&.role == "employee"
 
           hr = User.find_by(id: current_user.hr_id)
 
           if hr
 
-            # Mail failure should NOT make API fail
+            # Email should not make API fail
             begin
               UserMailer
                 .leave_notification(hr, leave)
@@ -217,7 +150,6 @@ module Api
       end
     end
 
-
     # PUT /api/leaves/:id
     def update
       leave = Leave.find_by(id: params[:id])
@@ -229,30 +161,22 @@ module Api
         return
       end
 
-      # IMPORTANT:
-      # First update the database.
-      # Mail/notification failure should not affect this update.
       if leave.update(leave_params)
 
         employee = leave.leaveable
 
         if employee
 
-          # Email is optional.
-          # If SMTP is not configured on Render,
-          # API should still return 200.
           begin
             UserMailer
               .leave_status_notification(employee, leave)
               .deliver_now
           rescue => e
             Rails.logger.error(
-              "❌ Leave status mail failed: #{e.class} - #{e.message}"
+              "Leave status mail failed: #{e.class} - #{e.message}"
             )
           end
 
-
-          # Push notification/background job
           begin
             LeaveNotificationJob.perform_later(
               employee.id,
@@ -261,14 +185,12 @@ module Api
             )
           rescue => e
             Rails.logger.error(
-              "❌ Leave notification job failed: #{e.class} - #{e.message}"
+              "Leave notification job failed: #{e.class} - #{e.message}"
             )
           end
 
         end
 
-
-        # Return updated leave immediately
         render json: {
           message: "Leave updated successfully",
           leave: {
@@ -300,7 +222,7 @@ module Api
     rescue => e
 
       Rails.logger.error(
-        "❌ Leave update error: #{e.class} - #{e.message}"
+        "Leave update error: #{e.class} - #{e.message}"
       )
 
       Rails.logger.error(
@@ -311,7 +233,6 @@ module Api
         error: "Unable to update leave"
       }, status: :internal_server_error
     end
-
 
     # DELETE /api/leaves/:id
     def destroy
@@ -339,8 +260,134 @@ module Api
       end
     end
 
-
     private
+
+    # ----------------------------------------
+    # HR LEAVES
+    # ----------------------------------------
+
+    def hr_leaves(company_id, applied_by)
+      if applied_by == "employee" || applied_by.blank?
+
+        Leave
+          .select(
+            :id,
+            :employeename,
+            :leaveType,
+            :from_date,
+            :to_date,
+            :reason,
+            :status,
+            :leaveable_id,
+            :leaveable_type,
+            :created_at
+          )
+          .joins(
+            "INNER JOIN users ON users.id = leaves.leaveable_id"
+          )
+          .where(
+            leaveable_type: "User",
+            users: {
+              company_id: company_id,
+              role: User.roles[:employee]
+            }
+          )
+          .includes(:leaveable)
+          .order(created_at: :desc)
+
+      else
+
+        Leave
+          .select(
+            :id,
+            :employeename,
+            :leaveType,
+            :from_date,
+            :to_date,
+            :reason,
+            :status,
+            :leaveable_id,
+            :leaveable_type,
+            :created_at
+          )
+          .where(
+            leaveable_type: "User",
+            leaveable_id: current_user.id
+          )
+          .includes(:leaveable)
+          .order(created_at: :desc)
+
+      end
+    end
+
+    # ----------------------------------------
+    # EMPLOYEE LEAVES
+    # ----------------------------------------
+
+    def employee_leaves
+      Leave
+        .select(
+          :id,
+          :employeename,
+          :leaveType,
+          :from_date,
+          :to_date,
+          :reason,
+          :status,
+          :leaveable_id,
+          :leaveable_type,
+          :created_at
+        )
+        .where(
+          leaveable_type: "User",
+          leaveable_id: current_user.id
+        )
+        .includes(:leaveable)
+        .order(created_at: :desc)
+    end
+
+    # ----------------------------------------
+    # COMPANY LEAVES
+    # ----------------------------------------
+
+    def company_leaves(company_id, applied_by)
+      role =
+        if applied_by == "employee"
+          :employee
+        else
+          :hr
+        end
+
+      Leave
+        .select(
+          :id,
+          :employeename,
+          :leaveType,
+          :from_date,
+          :to_date,
+          :reason,
+          :status,
+          :leaveable_id,
+          :leaveable_type,
+          :created_at
+        )
+        .joins(
+          "INNER JOIN users ON users.id = leaves.leaveable_id"
+        )
+        .where(
+          leaveable_type: "User",
+          users: {
+            company_id: company_id,
+            role: User.roles[role]
+          }
+        )
+        .includes(:leaveable)
+        .order(created_at: :desc)
+    end
+
+    # ----------------------------------------
+    # STRONG PARAMETERS
+    # ----------------------------------------
 
     def leave_params
       params.require(:leave).permit(
@@ -353,6 +400,5 @@ module Api
         :profileImage
       )
     end
-
   end
 end
