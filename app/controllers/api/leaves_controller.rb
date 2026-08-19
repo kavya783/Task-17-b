@@ -138,46 +138,65 @@ module Api
     end
 
     # PUT /api/leaves/:id
-     def update
+  # PUT /api/leaves/:id
+def update
   leave = Leave.find(params[:id])
 
   if leave.update(leave_params)
 
     employee = leave.leaveable
 
-    # Employee notification
+    # Employee email notification
     if employee
-      UserMailer
-        .leave_status_notification(employee, leave)
-        .deliver_now
+      begin
+        UserMailer
+          .leave_status_notification(employee, leave)
+          .deliver_now
+      rescue => e
+        Rails.logger.error(
+          "Leave status email failed: #{e.class} - #{e.message}"
+        )
+      end
 
-      LeaveNotificationJob.perform_later(
-        employee.id,
-        "Leave #{leave.status}",
-        "Your leave request has been #{leave.status}"
-      )
+      # Employee push notification
+      begin
+        LeaveNotificationJob.perform_later(
+          employee.id,
+          "Leave #{leave.status}",
+          "Your leave request has been #{leave.status}"
+        )
+      rescue => e
+        Rails.logger.error(
+          "Employee leave notification job failed: #{e.class} - #{e.message}"
+        )
+      end
     end
 
-    # HR notification
+    # HR push notification
     if current_user&.role == "hr"
-      LeaveNotificationJob.perform_later(
-        current_user.id,
-        "Leave #{leave.status}",
-        "#{employee&.name} leave request has been #{leave.status}"
-      )
+      begin
+        LeaveNotificationJob.perform_later(
+          current_user.id,
+          "Leave #{leave.status}",
+          "#{employee&.name} leave request has been #{leave.status}"
+        )
+      rescue => e
+        Rails.logger.error(
+          "HR leave notification job failed: #{e.class} - #{e.message}"
+        )
+      end
     end
 
     render json: {
       message: "Leave updated successfully",
       leave: leave
-    }
+    }, status: :ok
 
   else
 
     render json: {
       errors: leave.errors.full_messages
-    },
-    status: :unprocessable_entity
+    }, status: :unprocessable_entity
 
   end
 end
