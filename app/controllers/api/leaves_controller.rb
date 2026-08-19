@@ -19,14 +19,6 @@ module Api
           company_leaves(company_id, applied_by)
         end
 
-      # Pagination
-      page = params.fetch(:page, 1).to_i
-      per_page = params.fetch(:per_page, 10).to_i.clamp(1, 50)
-
-      leaves = leaves
-        .page(page)
-        .per(per_page)
-
       result = leaves.map do |leave|
         user = leave.leaveable
 
@@ -42,13 +34,10 @@ module Api
         }
       end
 
-      render json: {
-        leaves: result,
-        current_page: leaves.current_page,
-        total_pages: leaves.total_pages,
-        total_count: leaves.total_count,
-        per_page: leaves.limit_value
-      }, status: :ok
+      # IMPORTANT:
+      # Keep response as an array because the existing React
+      # Leave List expects response.data to be an array.
+      render json: result, status: :ok
     end
 
     # GET /api/leaves/:id
@@ -109,7 +98,6 @@ module Api
 
           if hr
 
-            # Email should not make API fail
             begin
               UserMailer
                 .leave_notification(hr, leave)
@@ -120,7 +108,6 @@ module Api
               )
             end
 
-            # Background notification
             begin
               LeaveNotificationJob.perform_later(
                 hr.id,
@@ -270,18 +257,6 @@ module Api
       if applied_by == "employee" || applied_by.blank?
 
         Leave
-          .select(
-            :id,
-            :employeename,
-            :leaveType,
-            :from_date,
-            :to_date,
-            :reason,
-            :status,
-            :leaveable_id,
-            :leaveable_type,
-            :created_at
-          )
           .joins(
             "INNER JOIN users ON users.id = leaves.leaveable_id"
           )
@@ -298,18 +273,6 @@ module Api
       else
 
         Leave
-          .select(
-            :id,
-            :employeename,
-            :leaveType,
-            :from_date,
-            :to_date,
-            :reason,
-            :status,
-            :leaveable_id,
-            :leaveable_type,
-            :created_at
-          )
           .where(
             leaveable_type: "User",
             leaveable_id: current_user.id
@@ -326,18 +289,6 @@ module Api
 
     def employee_leaves
       Leave
-        .select(
-          :id,
-          :employeename,
-          :leaveType,
-          :from_date,
-          :to_date,
-          :reason,
-          :status,
-          :leaveable_id,
-          :leaveable_type,
-          :created_at
-        )
         .where(
           leaveable_type: "User",
           leaveable_id: current_user.id
@@ -359,18 +310,6 @@ module Api
         end
 
       Leave
-        .select(
-          :id,
-          :employeename,
-          :leaveType,
-          :from_date,
-          :to_date,
-          :reason,
-          :status,
-          :leaveable_id,
-          :leaveable_type,
-          :created_at
-        )
         .joins(
           "INNER JOIN users ON users.id = leaves.leaveable_id"
         )
