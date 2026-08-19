@@ -5,129 +5,74 @@ class WelcomeNotificationJob < ApplicationJob
 
   def perform(id, type)
 
-    case type
-
-
-    # ==================================================
-    # COMPANY
-    # ==================================================
-
-    when "company"
+    if type == "company"
 
       company = Company.find(id)
 
-
-      # -----------------------------------------------
-      # Create welcome notification
-      # -----------------------------------------------
+     
 
       Notification.create!(
         company_id: company.id,
-
         title: "Welcome",
-
-        message:
-          "Welcome #{company.name} to WorkSphere Portal",
-
+        message: "Welcome #{company.name} to WorkSphere Portal",
         notification_type: "welcome"
       )
 
 
-      # -----------------------------------------------
-      # Get company device tokens
-      # -----------------------------------------------
+      tokens = DeviceToken.where(
+        company_id: company.id
+      ).pluck(:token)
 
-      tokens =
-        DeviceToken
-          .where(company_id: company.id)
-          .where.not(token: [nil, ""])
-          .pluck(:token)
-          .uniq
-
-
-      # -----------------------------------------------
-      # Send notification
-      # -----------------------------------------------
 
       tokens.each do |token|
 
         FirebaseNotificationService.send_notification(
           token,
-
           "Welcome",
-
           "Welcome #{company.name} to WorkSphere Portal"
         )
 
       end
 
 
-    # ==================================================
-    # HR / EMPLOYEE
-    # ==================================================
+    elsif type == "hr" || type == "employee"
 
-    when "hr", "employee"
 
       user = User.find(id)
 
 
-      # -----------------------------------------------
-      # Create welcome notification
-      # -----------------------------------------------
+      # return if Notification.exists?(
+      #   user_id: user.id,
+      #   notification_type: "welcome"
+      # )
+
 
       Notification.create!(
         user_id: user.id,
-
         title: "Welcome",
-
-        message:
-          "Welcome #{user.name} to WorkSphere Portal",
-
+        message: "Welcome #{user.name} to WorkSphere Portal",
         notification_type: "welcome"
       )
 
 
-      # -----------------------------------------------
-      # Get user device token
-      # -----------------------------------------------
-
-      device_token =
-        DeviceToken.find_by(
-          user_id: user.id
-        )
+      device_token = DeviceToken.find_by(
+        user_id: user.id
+      )
 
 
-      # -----------------------------------------------
-      # Send notification
-      # -----------------------------------------------
-
-      if device_token.present? &&
-         device_token.token.present?
+      if device_token.present?
 
         FirebaseNotificationService.send_notification(
           device_token.token,
-
           "Welcome",
-
           "Welcome #{user.name} to WorkSphere Portal"
         )
 
       end
 
-    end
 
-  rescue ActiveRecord::RecordNotFound => error
+    end   # if type end
 
-    Rails.logger.error(
-      "WelcomeNotificationJob record not found: #{error.message}"
-    )
+  end     # perform end
 
-  rescue StandardError => error
-
-    Rails.logger.error(
-      "WelcomeNotificationJob failed: #{error.message}"
-    )
-
-  end
-
-end
+end       # class end
