@@ -75,31 +75,32 @@ end
           return
         end
 
-        if hr.save
+   if hr.save
 
-    attach_compressed_image(hr) if params[:profile_image].present?
+        attach_compressed_image(hr) if params[:profile_image].present?
 
-    Rails.cache.delete("company_#{hr.company_id}_hrs")
+        Rails.cache.delete("company_#{hr.company_id}_hrs")
 
-    UserMailer
-      .hr_created(hr)
-      .deliver_now
-
-    render json: {
-      message: "HR added successfully",
-      user: hr
-    }, status: :created
-
-  else
-
-
-          render json:{
-            errors:hr.errors.full_messages
-          },
-          status: :unprocessable_entity
-
-
+        begin
+          UserMailer
+            .hr_created(hr)
+            .deliver_now
+        rescue => e
+          Rails.logger.error(
+            "HR creation email failed: #{e.class} - #{e.message}"
+          )
         end
+
+        render json: {
+          message: "HR added successfully",
+          user: hr
+        }, status: :created
+
+      else
+        render json: {
+          errors: hr.errors.full_messages
+        }, status: :unprocessable_entity
+end
 
       end
 
