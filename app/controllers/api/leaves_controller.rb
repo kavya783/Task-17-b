@@ -138,7 +138,7 @@ module Api
     end
 
     # PUT /api/leaves/:id
-  # PUT /api/leaves/:id
+
 def update
   leave = Leave.find(params[:id])
 
@@ -146,8 +146,9 @@ def update
 
     employee = leave.leaveable
 
-    # Employee email notification
-    if employee
+    if employee&.role == "employee"
+
+      # Employee gets leave approved/rejected notification
       begin
         UserMailer
           .leave_status_notification(employee, leave)
@@ -158,7 +159,6 @@ def update
         )
       end
 
-      # Employee push notification
       begin
         LeaveNotificationJob.perform_later(
           employee.id,
@@ -170,21 +170,22 @@ def update
           "Employee leave notification job failed: #{e.class} - #{e.message}"
         )
       end
-    end
 
-    # HR push notification
-    if current_user&.role == "hr"
+    elsif employee&.role == "hr"
+
+      # HR gets notification for their own leave status
       begin
         LeaveNotificationJob.perform_later(
-          current_user.id,
+          employee.id,
           "Leave #{leave.status}",
-          "#{employee&.name} leave request has been #{leave.status}"
+          "Your leave request has been #{leave.status}"
         )
       rescue => e
         Rails.logger.error(
           "HR leave notification job failed: #{e.class} - #{e.message}"
         )
       end
+
     end
 
     render json: {
@@ -230,9 +231,6 @@ end
 
     private
 
-    # ----------------------------------------
-    # HR LEAVES
-    # ----------------------------------------
 
     def hr_leaves(company_id, applied_by)
       if applied_by == "employee" || applied_by.blank?
@@ -264,9 +262,6 @@ end
       end
     end
 
-    # ----------------------------------------
-    # EMPLOYEE LEAVES
-    # ----------------------------------------
 
     def employee_leaves
       Leave
