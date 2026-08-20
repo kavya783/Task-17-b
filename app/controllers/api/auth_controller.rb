@@ -16,54 +16,52 @@ module Api
         }, status: :unprocessable_entity
       end
     end
+def login
+  # Company Login
+  company = Company.find_by(email: params[:email])
 
-    def login
-      # Company Login
-      company = Company.find_by(email: params[:email])
+  if company&.authenticate(params[:password])
+    token = JsonWebToken.encode(company_id: company.id)
 
-      if company&.authenticate(params[:password])
-        token = JsonWebToken.encode(company_id: company.id)
+    WelcomeNotificationJob
+      .set(wait: 15.seconds)
+      .perform_later(company.id, "company")
 
-        WelcomeNotificationJob
-          .set(wait: 15.seconds)
-          .perform_later(company.id, "company")
+    render json: {
+      message: "Login successful",
+      token: token,
+      type: "company",
+      company: company
+    }
 
-        render json: {
-          message: "Login successful",
-          token: token,
-          type: "company",
-          company: company
-        }
+    return
+  end
 
-        return
-      end
+  # User Login
+  user = User.find_by(email: params[:email])
 
-      # User Login
-      user = User.find_by(email: params[:email])
+  if user&.authenticate(params[:password])
+    token = JsonWebToken.encode(user_id: user.id)
 
-      if user&.authenticate(params[:password])
-        token = JsonWebToken.encode(user_id: user.id)
-
-        # Send login notification for HR and Employee
-        if user.role.in?(["hr", "employee","company"])
-          WelcomeNotificationJob
-            .set(wait: 15.seconds)
-            .perform_later(user.id, user.role)
-        end
-
-        render json: {
-          message: "Login successful",
-          token: token,
-          type: "user",
-          role: user.role,
-          user: user
-        }
-      else
-        render json: {
-          error: "Invalid email or password"
-        }, status: :unauthorized
-      end
+    if user.role.in?(["hr", "employee"])
+      WelcomeNotificationJob
+        .set(wait: 15.seconds)
+        .perform_later(user.id, user.role)
     end
+
+    render json: {
+      message: "Login successful",
+      token: token,
+      type: "user",
+      role: user.role,
+      user: user
+    }
+  else
+    render json: {
+      error: "Invalid email or password"
+    }, status: :unauthorized
+  end
+end
 
     private
 
