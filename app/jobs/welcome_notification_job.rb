@@ -35,43 +35,32 @@ class WelcomeNotificationJob < ApplicationJob
       end
 
 
-    elsif type == "hr" || type == "employee"
+   elsif type == "hr" || type == "employee"
 
+  user = User.find(id)
 
-      user = User.find(id)
+  Notification.create!(
+    user_id: user.id,
+    title: "Welcome",
+    message: "Welcome #{user.name} to WorkSphere Portal",
+    notification_type: "welcome"
+  )
 
+  device_tokens = DeviceToken.where(
+    user_id: user.id
+  ).pluck(:token)
 
-      # return if Notification.exists?(
-      #   user_id: user.id,
-      #   notification_type: "welcome"
-      # )
+  device_tokens.each do |token|
 
+    FirebaseNotificationService.send_notification(
+      token,
+      "Welcome",
+      "Welcome #{user.name} to WorkSphere Portal"
+    )
 
-      Notification.create!(
-        user_id: user.id,
-        title: "Welcome",
-        message: "Welcome #{user.name} to WorkSphere Portal",
-        notification_type: "welcome"
-      )
+  end
 
-
-      device_token = DeviceToken.find_by(
-        user_id: user.id
-      )
-
-
-      if device_token.present?
-
-        FirebaseNotificationService.send_notification(
-          device_token.token,
-          "Welcome",
-          "Welcome #{user.name} to WorkSphere Portal"
-        )
-
-      end
-
-
-    end   # if type end
+end      # if type end
 
   end     # perform end
 

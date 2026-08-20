@@ -8,53 +8,35 @@ class FirebaseNotificationService
 
     project_id = ENV["FIREBASE_PROJECT_ID"]
 
-    raise "FIREBASE_PROJECT_ID is missing" if project_id.blank?
-
-    scope = [
-      "https://www.googleapis.com/auth/firebase.messaging"
-    ]
+    scope = ["https://www.googleapis.com/auth/firebase.messaging"]
 
     key_path =
-      if Rails.env.production?
-        "/etc/secrets/serviceAccountKey.json"
-      else
-        Rails.root.join(
-          "config",
-          "serviceAccountKey.json"
-        )
-      end
+  if Rails.env.production?
+    "/etc/secrets/serviceAccountKey.json"
+  else
+    Rails.root.join("config", "serviceAccountKey.json")
+  end
 
-    authorizer =
-      Google::Auth::ServiceAccountCredentials.make_creds(
-        json_key_io: File.open(key_path),
-        scope: scope
-      )
+authorizer = Google::Auth::ServiceAccountCredentials.make_creds(
+  json_key_io: File.open(key_path),
+  scope: scope
+)
 
     authorizer.fetch_access_token!
 
     access_token = authorizer.access_token
 
     uri = URI(
-      "https://fcm.googleapis.com/v1/projects/" \
-      "#{project_id}/messages:send"
+      "https://fcm.googleapis.com/v1/projects/#{project_id}/messages:send"
     )
 
-    http = Net::HTTP.new(
-      uri.host,
-      uri.port
-    )
-
+    http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
 
-    request = Net::HTTP::Post.new(
-      uri.request_uri
-    )
+    request = Net::HTTP::Post.new(uri.path)
 
-    request["Authorization"] =
-      "Bearer #{access_token}"
-
-    request["Content-Type"] =
-      "application/json"
+    request["Authorization"] = "Bearer #{access_token}"
+    request["Content-Type"] = "application/json"
 
     request.body = {
       message: {
@@ -69,20 +51,9 @@ class FirebaseNotificationService
     response = http.request(request)
 
     if response.code.to_i == 200
-
-      Rails.logger.info(
-        "FCM notification sent successfully"
-      )
-
-      true
-
+      puts "Notification sent successfully"
     else
-
-      Rails.logger.error(
-        "FCM notification failed: #{response.body}"
-      )
-
-      raise StandardError, response.body
+      puts response.body
     end
   end
 end
