@@ -3,122 +3,110 @@ module Api
 
     before_action :authenticate_request
 
-    def index
-      if current_company
 
-        notifications = Notification
-          .where(company_id: current_company.id)
-          .where.not(notification_type: "welcome")
-          .preload(:company)
-          .order(created_at: :desc)
+def index
+  if current_company
 
-      elsif current_user
+    notifications = Notification
+      .where(company_id: current_company.id)
+      .where.not(notification_type: "welcome")
+      .preload(:company)
+      .order(created_at: :desc)
 
-        notifications = Notification
-          .where(user_id: current_user.id)
-          .where.not(notification_type: "welcome")
-          .preload(:user)
-          .order(created_at: :desc)
+  elsif current_user
 
-      else
+    notifications = Notification
+      .where(user_id: current_user.id)
+      .where.not(notification_type: "welcome")
+      .preload(:user)
+      .order(created_at: :desc)
 
-        notifications = Notification.none
+  else
 
-      end
+    notifications = Notification.none
 
-      render json: notifications.map { |notification|
-        {
-          id: notification.id,
-          title: notification.title,
-          message: notification.message,
-          notification_type: notification.notification_type,
-          read: notification.read,
-          created_at: notification.created_at,
-          user_name: notification.user&.name,
-          user_email: notification.user&.email
-        }
-      }
-    end
+  end
 
-    def welcome
-      notification = nil
+  render json: notifications.map { |notification|
+    {
+      id: notification.id,
+      title: notification.title,
+      message: notification.message,
+      notification_type: notification.notification_type,
+      read: notification.read,
+      created_at: notification.created_at,
+      user_name: notification.user&.name,
+      user_email: notification.user&.email
+    }
+  }
+end
 
-      if current_company
 
-        notification = Notification.find_by(
-          company_id: current_company.id,
-          notification_type: "welcome",
-          read: false
-        )
+   def welcome
 
-      elsif current_user
+  notification = nil
 
-        notification = Notification.find_by(
-          user_id: current_user.id,
-          notification_type: "welcome",
-          read: false
-        )
+  if current_company
 
-      end
+    notification = Notification.find_by(
+      company_id: current_company.id,
+      notification_type: "welcome",
+      read: false
+    )
 
-      render json: notification
-    end
+
+  elsif current_user
+
+    notification = Notification.find_by(
+      user_id: current_user.id,
+      notification_type: "welcome",
+      read: false
+    )
+
+  end
+
+
+  render json: notification
+
+end
+
 
     def mark_as_read
-      notification =
-        if current_company
-          Notification.find_by!(
-            id: params[:id],
-            company_id: current_company.id
-          )
-        elsif current_user
-          Notification.find_by!(
-            id: params[:id],
-            user_id: current_user.id
-          )
-        end
 
-      notification.update!(read: true)
+      notification = Notification.find(params[:id])
+
+      notification.update(read: true)
 
       render json: {
-        message: "Notification marked as read"
+        message: "Notification  as read"
       }
-    end
 
+    end
     def create
-      employee = User.find(params[:employee_id])
+  employee = User.find(params[:employee_id])
 
-      FirebaseNotificationService.send_notification(
-        employee.fcm_token,
-        params[:title],
-        params[:body]
-      )
+  FirebaseNotificationService.send_notification(
+    employee.fcm_token,
+    params[:title],
+    params[:body]
+  )
 
-      render json: {
-        message: "Notification sent successfully"
-      }
-    end
-
+  render json: {
+    message: "Notification sent successfully"
+  }
+end
     def destroy
-      notification =
-        if current_company
-          Notification.find_by!(
-            id: params[:id],
-            company_id: current_company.id
-          )
-        elsif current_user
-          Notification.find_by!(
-            id: params[:id],
-            user_id: current_user.id
-          )
-        end
 
-      notification.destroy!
+      notification = Notification.find(params[:id])
+
+      notification.destroy
 
       render json: {
         message: "Notification deleted successfully"
       }
+
     end
 
   end
+  
 end

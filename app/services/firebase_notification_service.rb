@@ -8,19 +8,25 @@ class FirebaseNotificationService
 
     project_id = ENV["FIREBASE_PROJECT_ID"]
 
-    scope = ["https://www.googleapis.com/auth/firebase.messaging"]
+    scope = [
+      "https://www.googleapis.com/auth/firebase.messaging"
+    ]
 
     key_path =
-  if Rails.env.production?
-    "/etc/secrets/serviceAccountKey.json"
-  else
-    Rails.root.join("config", "serviceAccountKey.json")
-  end
+      if Rails.env.production?
+        "/etc/secrets/serviceAccountKey.json"
+      else
+        Rails.root.join(
+          "config",
+          "serviceAccountKey.json"
+        )
+      end
 
-authorizer = Google::Auth::ServiceAccountCredentials.make_creds(
-  json_key_io: File.open(key_path),
-  scope: scope
-)
+    authorizer =
+      Google::Auth::ServiceAccountCredentials.make_creds(
+        json_key_io: File.open(key_path),
+        scope: scope
+      )
 
     authorizer.fetch_access_token!
 
@@ -30,17 +36,27 @@ authorizer = Google::Auth::ServiceAccountCredentials.make_creds(
       "https://fcm.googleapis.com/v1/projects/#{project_id}/messages:send"
     )
 
-    http = Net::HTTP.new(uri.host, uri.port)
+    http = Net::HTTP.new(
+      uri.host,
+      uri.port
+    )
+
     http.use_ssl = true
 
-    request = Net::HTTP::Post.new(uri.path)
+    request = Net::HTTP::Post.new(
+      uri.path
+    )
 
-    request["Authorization"] = "Bearer #{access_token}"
-    request["Content-Type"] = "application/json"
+    request["Authorization"] =
+      "Bearer #{access_token}"
+
+    request["Content-Type"] =
+      "application/json"
 
     request.body = {
       message: {
         token: device_token,
+
         notification: {
           title: title,
           body: body
@@ -51,9 +67,54 @@ authorizer = Google::Auth::ServiceAccountCredentials.make_creds(
     response = http.request(request)
 
     if response.code.to_i == 200
-      puts "Notification sent successfully"
+
+      Rails.logger.info(
+        " Firebase notification sent successfully"
+      )
+
     else
-      puts response.body
+
+      Rails.logger.error(
+        " Firebase notification failed: #{response.body}"
+      )
+
     end
+
   end
+
+
+
+
+  def self.send_notification_to_company(
+    company_id,
+    title,
+    body
+  )
+
+    device_token =
+      DeviceToken.find_by(
+        company_id: company_id
+      )
+
+    if device_token.blank?
+
+      Rails.logger.error(
+        " NO DEVICE TOKEN FOUND FOR COMPANY #{company_id}"
+      )
+
+      return
+    end
+
+    Rails.logger.info(
+      " COMPANY DEVICE TOKEN FOUND: #{device_token.id}"
+    )
+
+    send_notification(
+      device_token.token,
+      title,
+      body
+    )
+
+  end
+
 end

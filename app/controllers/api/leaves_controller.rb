@@ -2,252 +2,34 @@ module Api
   class LeavesController < ApplicationController
     before_action :authenticate_request
 
-    # GET /api/leaves
-    def index
-      applied_by = params[:applied_by].presence
-      company_id = current_user&.company_id || current_company&.id
 
-      leaves =
-        case current_user&.role
-        when "hr"
-          hr_leaves(company_id, applied_by)
+def index
+  applied_by = params[:applied_by].presence
 
-        when "employee"
-          employee_leaves
+  company_id = current_user&.company_id || current_company&.id
 
-        else
-          company_leaves(company_id, applied_by)
-        end
+  leaves =
+    if current_user&.role == "hr"
 
-      result = leaves.map do |leave|
-        user = leave.leaveable
-
-        {
-          id: leave.id,
-          employeename: user&.name || leave.employeename,
-          email: user&.email,
-          leaveType: leave.leaveType,
-          from_date: leave.from_date,
-          to_date: leave.to_date,
-          reason: leave.reason,
-          status: leave.status.presence || "pending"
-        }
-      end
-
-      # IMPORTANT:
-      # Keep response as an array because the existing React
-      # Leave List expects response.data to be an array.
-      render json: result, status: :ok
-    end
-
-    # GET /api/leaves/:id
-    def show
-      leave = Leave
-        .includes(:leaveable)
-        .find_by(id: params[:id])
-
-      unless leave
-        render json: {
-          error: "Leave not found"
-        }, status: :not_found
-        return
-      end
-
-      user = leave.leaveable
-
-      profile_image_url =
-        if user&.profile_image&.attached?
-          url_for(user.profile_image)
-        end
-
-      render json: {
-        message: "Leave details fetched successfully",
-        leave: {
-          id: leave.id,
-          employeename: user&.name || leave.employeename,
-          email: user&.email,
-          leaveType: leave.leaveType,
-          from_date: leave.from_date,
-          to_date: leave.to_date,
-          reason: leave.reason,
-          status: leave.status.presence || "pending",
-          profile_image_url: profile_image_url
-        }
-      }, status: :ok
-    end
-
-    # POST /api/leaves
-    def create
-      leave = Leave.new(leave_params)
-
-      leave.leaveable = current_user
-      leave.company_id = current_user&.company_id || current_company&.id
-
-      if leave.company_id.blank?
-        render json: {
-          error: "Company not found"
-        }, status: :unprocessable_entity
-        return
-      end
-
-      if leave.save
-
-        if current_user&.role == "employee"
-
-          hr = User.find_by(id: current_user.hr_id)
-
-          if hr
-
-            begin
-              UserMailer
-                .leave_notification(hr, leave)
-                .deliver_now
-            rescue => e
-              Rails.logger.error(
-                "Leave notification mail failed: #{e.class} - #{e.message}"
-              )
-            end
-
-            begin
-              LeaveNotificationJob.perform_later(
-                hr.id,
-                "New Leave Request",
-                "#{current_user.name} applied for leave"
-              )
-            rescue => e
-              Rails.logger.error(
-                "Leave notification job failed: #{e.class} - #{e.message}"
-              )
-            end
-
-          end
-        end
-
-        render json: {
-          message: "Leave applied successfully",
-          leave: leave
-        }, status: :created
-
-      else
-
-        render json: {
-          errors: leave.errors.full_messages
-        }, status: :unprocessable_entity
-
-      end
-    end
-
-    # PUT /api/leaves/:id
-
-def update
-  leave = Leave.find(params[:id])
-
-  if leave.update(leave_params)
-
-    employee = leave.leaveable
-
-    if employee&.role == "employee"
-
-      # Employee gets leave approved/rejected notification
-      begin
-        UserMailer
-          .leave_status_notification(employee, leave)
-          .deliver_now
-      rescue => e
-        Rails.logger.error(
-          "Leave status email failed: #{e.class} - #{e.message}"
-        )
-      end
-
-      begin
-        LeaveNotificationJob.perform_later(
-          employee.id,
-          "Leave #{leave.status}",
-          "Your leave request has been #{leave.status}"
-        )
-      rescue => e
-        Rails.logger.error(
-          "Employee leave notification job failed: #{e.class} - #{e.message}"
-        )
-      end
-
-    elsif employee&.role == "hr"
-
-      # HR gets notification for their own leave status
-      begin
-        LeaveNotificationJob.perform_later(
-          employee.id,
-          "Leave #{leave.status}",
-          "Your leave request has been #{leave.status}"
-        )
-      rescue => e
-        Rails.logger.error(
-          "HR leave notification job failed: #{e.class} - #{e.message}"
-        )
-      end
-
-    end
-
-    render json: {
-      message: "Leave updated successfully",
-      leave: leave
-    }, status: :ok
-
-  else
-
-    render json: {
-      errors: leave.errors.full_messages
-    }, status: :unprocessable_entity
-
-  end
-end
-
-
-    # DELETE /api/leaves/:id
-    def destroy
-      leave = Leave.find_by(id: params[:id])
-
-      unless leave
-        render json: {
-          error: "Leave not found"
-        }, status: :not_found
-        return
-      end
-
-      if leave.destroy
-
-        render json: {
-          message: "Leave deleted successfully"
-        }, status: :ok
-
-      else
-
-        render json: {
-          error: "Delete failed"
-        }, status: :unprocessable_entity
-
-      end
-    end
-
-    private
-
-
-    def hr_leaves(company_id, applied_by)
       if applied_by == "employee" || applied_by.blank?
 
+        employee_ids =
+          if company_id.present?
+            User.where(
+              company_id: company_id,
+              role: :employee
+            ).pluck(:id)
+          else
+            []
+          end
+
         Leave
-          .joins(
-            "INNER JOIN users ON users.id = leaves.leaveable_id"
-          )
           .where(
             leaveable_type: "User",
-            users: {
-              company_id: company_id,
-              role: User.roles[:employee]
-            }
+            leaveable_id: employee_ids
           )
           .includes(:leaveable)
-          .order(created_at: :desc)
+          .recent
 
       else
 
@@ -257,13 +39,12 @@ end
             leaveable_id: current_user.id
           )
           .includes(:leaveable)
-          .order(created_at: :desc)
+          .recent
 
       end
-    end
 
+    elsif current_user&.role == "employee"
 
-    def employee_leaves
       Leave
         .where(
           leaveable_type: "User",
@@ -271,49 +52,264 @@ end
         )
         .includes(:leaveable)
         .order(created_at: :desc)
+
+    elsif current_company.present?
+
+      if applied_by == "employee"
+
+        employee_ids = User
+          .where(
+            company_id: current_company.id,
+            role: :employee
+          )
+          .pluck(:id)
+
+        Leave
+          .where(
+            leaveable_type: "User",
+            leaveable_id: employee_ids
+          )
+          .includes(:leaveable)
+          .order(created_at: :desc)
+
+      else
+
+        hr_ids = User
+          .where(
+            company_id: current_company.id,
+            role: :hr
+          )
+          .pluck(:id)
+
+        Leave
+          .where(
+            leaveable_type: "User",
+            leaveable_id: hr_ids
+          )
+          .includes(:leaveable)
+          .order(created_at: :desc)
+
+      end
+
+    else
+      Leave.none
+    end
+ 
+    result = leaves.map do |leave|
+  user = leave.leaveable
+
+  {
+    id: leave.id,
+    employeename: user&.name || leave.employeename,
+    email: user&.email,
+    leaveType: leave.leaveType,
+    from_date: leave.from_date,
+    to_date: leave.to_date,
+    reason: leave.reason,
+    status: leave.status.presence || "pending"
+  }
+end
+
+Rails.logger.info " FINAL LEAVE RESPONSE: #{result.inspect}"
+
+render json: result
+end
+  def show
+  leave = Leave
+    .includes(:leaveable)
+    .find_by(id: params[:id])
+
+  unless leave
+    render json: { error: "Leave not found" }, status: :not_found
+    return
+  end
+
+  user = leave.leaveable
+
+  profile_image_url =
+    if user&.profile_image&.attached?
+      url_for(user.profile_image)
     end
 
-    # ----------------------------------------
-    # COMPANY LEAVES
-    # ----------------------------------------
+  render json: {
+    message: "Leave details fetched successfully",
+    leave: {
+      id: leave.id,
+      employeename: user&.name || leave.employeename,
+      email: user&.email,
+      leaveType: leave.leaveType,
+      from_date: leave.from_date,
+      to_date: leave.to_date,
+      reason: leave.reason,
+      status: leave.status.presence || "pending",
+      profile_image_url: profile_image_url
+    }
+  }
+end
 
-    def company_leaves(company_id, applied_by)
-      role =
-        if applied_by == "employee"
-          :employee
-        else
-          :hr
-        end
 
-      Leave
-        .joins(
-          "INNER JOIN users ON users.id = leaves.leaveable_id"
+
+  def create
+
+  leave = Leave.new(leave_params)
+
+  leave.leaveable = current_user
+  leave.company_id = current_user&.company_id || current_company&.id
+
+  if leave.company_id.blank?
+    render json: {
+      error: "Company not found"
+    }, status: :unprocessable_entity
+    return
+  end
+
+  if leave.save
+
+  
+
+
+    if current_user.role == "employee"
+
+      hr = User.find_by(id: current_user.hr_id)
+
+      if hr
+
+        UserMailer
+          .leave_notification(hr, leave)
+          .deliver_now
+
+        LeaveNotificationJob.perform_later(
+          hr.id,
+          "New Leave Request",
+          "#{current_user.name} applied for leave"
         )
-        .where(
-          leaveable_type: "User",
-          users: {
-            company_id: company_id,
-            role: User.roles[role]
-          }
+
+      end
+
+
+    elsif current_user.role == "hr"
+
+      company = Company.find_by(
+        id: current_user.company_id
+      )
+
+      if company
+
+        # Create notification for Company dashboard
+        Notification.create!(
+          company_id: company.id,
+          title: "New HR Leave Request",
+          message: "#{current_user.name} applied for leave",
+          notification_type: "leave",
+          read: false
         )
-        .includes(:leaveable)
-        .order(created_at: :desc)
+
+        # Send push notification to Company
+        FirebaseNotificationService.send_notification_to_company(
+          company.id,
+          "New HR Leave Request",
+          "#{current_user.name} applied for leave"
+        )
+
+      end
+
     end
 
-    # ----------------------------------------
-    # STRONG PARAMETERS
-    # ----------------------------------------
+    render json: {
+      message: "Leave applied successfully",
+      leave: leave
+    }, status: :created
 
-    def leave_params
-      params.require(:leave).permit(
-        :employeename,
-        :leaveType,
-        :from_date,
-        :to_date,
-        :reason,
-        :status,
-        :profileImage
+  else
+
+    render json: {
+      errors: leave.errors.full_messages
+    }, status: :unprocessable_entity
+
+  end
+
+end
+
+
+
+
+  def update
+  leave = Leave.find(params[:id])
+
+  if leave.update(leave_params)
+
+    employee = leave.leaveable
+
+    # Notify employee when HR approves/rejects leave
+    if employee
+      UserMailer
+        .leave_status_notification(employee, leave)
+        .deliver_now
+
+      LeaveNotificationJob.perform_later(
+        employee.id,
+        "Leave #{leave.status}",
+        "Your leave request has been #{leave.status}"
       )
     end
+
+    render json: {
+      message: "Leave updated successfully",
+      leave: leave
+    }
+
+  else
+
+    render json: {
+      errors: leave.errors.full_messages
+    },
+    status: :unprocessable_entity
+
+  end
+end
+
+
+
+
+    def destroy
+
+      leave = Leave.find(params[:id])
+
+
+      if leave.destroy
+
+        render json:{
+          message:"Leave deleted successfully"
+        }
+
+      else
+
+        render json:{
+          error:"Delete failed"
+        },
+        status: :unprocessable_entity
+
+      end
+
+    end
+
+
+
+    private
+
+
+  def leave_params
+  params.require(:leave).permit(
+    :employeename,
+   
+    :leaveType,
+    :from_date,
+    :to_date,
+    :reason,
+    :status,
+    :profileImage
+  )
+end
+
   end
 end
