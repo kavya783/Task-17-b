@@ -83,7 +83,9 @@ class FirebaseNotificationService
   end
 
 
-
+  # =========================================================
+  # COMPANY PUSH NOTIFICATION
+  # =========================================================
 
   def self.send_notification_to_company(
     company_id,
