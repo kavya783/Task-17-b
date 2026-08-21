@@ -233,19 +233,14 @@ end
 
 
 
-  def update
+ def update
   leave = Leave.find(params[:id])
 
   if leave.update(leave_params)
 
     employee = leave.leaveable
 
-    # Notify employee when HR approves/rejects leave
     if employee
-      UserMailer
-        .leave_status_notification(employee, leave)
-        .deliver_now
-
       LeaveNotificationJob.perform_later(
         employee.id,
         "Leave #{leave.status}",
@@ -256,14 +251,13 @@ end
     render json: {
       message: "Leave updated successfully",
       leave: leave
-    }
+    }, status: :ok
 
   else
 
     render json: {
       errors: leave.errors.full_messages
-    },
-    status: :unprocessable_entity
+    }, status: :unprocessable_entity
 
   end
 end
