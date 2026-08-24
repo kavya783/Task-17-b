@@ -5,7 +5,8 @@ module Api
     def index
       applied_by = params[:applied_by].presence
 
-      company_id = current_user&.company_id || current_company&.id
+      company_id =
+        current_user&.company_id || current_company&.id
 
       leaves =
         if current_user&.role == "hr"
@@ -91,7 +92,9 @@ module Api
           end
 
         else
+
           Leave.none
+
         end
 
       result = leaves.map do |leave|
@@ -109,10 +112,13 @@ module Api
         }
       end
 
-      Rails.logger.info "FINAL LEAVE RESPONSE: #{result.inspect}"
+      Rails.logger.info(
+        "FINAL LEAVE RESPONSE: #{result.inspect}"
+      )
 
       render json: result
     end
+
 
     def show
       leave = Leave
@@ -123,6 +129,7 @@ module Api
         render json: {
           error: "Leave not found"
         }, status: :not_found
+
         return
       end
 
@@ -135,82 +142,75 @@ module Api
 
       render json: {
         message: "Leave details fetched successfully",
+
         leave: {
           id: leave.id,
-          employeename: user&.name || leave.employeename,
+          employeename:
+            user&.name || leave.employeename,
           email: user&.email,
           leaveType: leave.leaveType,
           from_date: leave.from_date,
           to_date: leave.to_date,
           reason: leave.reason,
-          status: leave.status.presence || "pending",
-          profile_image_url: profile_image_url
+          status:
+            leave.status.presence || "pending",
+          profile_image_url:
+            profile_image_url
         }
       }
     end
+
 
     def create
       leave = Leave.new(leave_params)
 
       leave.leaveable = current_user
-      leave.company_id = current_user&.company_id || current_company&.id
+
+      leave.company_id =
+        current_user&.company_id ||
+        current_company&.id
 
       if leave.company_id.blank?
+
         render json: {
           error: "Company not found"
         }, status: :unprocessable_entity
+
         return
       end
 
+
       if leave.save
+
 
         if current_user.role == "employee"
 
-          hr = User.find_by(id: current_user.hr_id)
+          hr = User.find_by(
+            id: current_user.hr_id
+          )
 
           if hr
 
-            begin
-              UserMailer
-                .leave_notification(hr, leave)
-                .deliver_now
-
-              Rails.logger.info(
-                "Leave email sent successfully to HR #{hr.id}"
+            UserMailer
+              .leave_notification(
+                hr,
+                leave
               )
+              .deliver_now
 
-            rescue StandardError => e
-              Rails.logger.error(
-                "Leave email failed: #{e.class} - #{e.message}"
-              )
-            end
-
-            begin
-              LeaveNotificationJob.perform_later(
-                hr.id,
-                "New Leave Request",
-                "#{current_user.name} applied for leave"
-              )
-
-              Rails.logger.info(
-                "Leave notification job queued for HR #{hr.id}"
-              )
-
-            rescue StandardError => e
-              Rails.logger.error(
-                "Leave notification job failed: #{e.class} - #{e.message}"
-              )
-            end
-
-          else
-
-            Rails.logger.warn(
-              "HR not found for employee #{current_user.id}"
+            LeaveNotificationJob.perform_later(
+              hr.id,
+              "New Leave Request",
+              "#{current_user.name} applied for leave",
+              leave.id,
+              "applied"
             )
 
           end
 
-  
+
+   
+
         elsif current_user.role == "hr"
 
           company = Company.find_by(
@@ -219,59 +219,36 @@ module Api
 
           if company
 
-    
-            begin
-              Notification.create!(
-                company_id: company.id,
-                title: "New HR Leave Request",
-                message: "#{current_user.name} applied for leave",
-                notification_type: "leave",
-                read: false
-              )
+            Notification.create!(
+              company_id: company.id,
+              title: "New HR Leave Request",
+              message:
+                "#{current_user.name} applied for leave",
+              notification_type: "leave",
+              read: false,
+              leave_id: leave.id,
+              action: "applied",
+              applied_by: "hr"
+            )
 
-              Rails.logger.info(
-                "Company notification created for company #{company.id}"
-              )
-
-            rescue StandardError => e
-              Rails.logger.error(
-                "Company notification failed: #{e.class} - #{e.message}"
-              )
-            end
-
-            begin
-              FirebaseNotificationService.send_notification_to_company(
+            FirebaseNotificationService
+              .send_notification_to_company(
                 company.id,
                 "New HR Leave Request",
                 "#{current_user.name} applied for leave"
               )
 
-              Rails.logger.info(
-                "HR leave push notification sent to company #{company.id}"
-              )
-
-            rescue StandardError => e
-              Rails.logger.error(
-                "HR leave push notification failed: #{e.class} - #{e.message}"
-              )
-            end
-
-          else
-
-            Rails.logger.warn(
-              "Company not found for HR #{current_user.id}"
-            )
-
           end
+
         end
 
-      
 
         render json: {
           message: "Leave applied successfully",
           leave: leave
         }, status: :created
 
+
       else
 
         render json: {
@@ -280,48 +257,45 @@ module Api
 
       end
     end
+
 
     def update
-      leave = Leave.find(params[:id])
+  leave = Leave.find(params[:id])
 
-      if leave.update(leave_params)
+  if leave.update(leave_params)
 
-        employee = leave.leaveable
+    employee = leave.leaveable
 
-        if employee
+    if employee
 
-          begin
-            LeaveNotificationJob.perform_later(
-              employee.id,
-              "Leave #{leave.status}",
-              "Your leave request has been #{leave.status}"
-            )
+      UserMailer
+        .leave_status_notification(employee, leave)
+        .deliver_now
 
-            Rails.logger.info(
-              "Leave status notification queued for employee #{employee.id}"
-            )
+      LeaveNotificationJob.perform_later(
+        employee.id,
+        "Leave #{leave.status}",
+        "Your leave request has been #{leave.status}",
+        leave.id,
+        leave.status
+      )
 
-          rescue StandardError => e
-            Rails.logger.error(
-              "Leave status notification failed: #{e.class} - #{e.message}"
-            )
-          end
-
-        end
-
-        render json: {
-          message: "Leave updated successfully",
-          leave: leave
-        }, status: :ok
-
-      else
-
-        render json: {
-          errors: leave.errors.full_messages
-        }, status: :unprocessable_entity
-
-      end
     end
+
+    render json: {
+      message: "Leave updated successfully",
+      leave: leave
+    }
+
+  else
+
+    render json: {
+      errors: leave.errors.full_messages
+    }, status: :unprocessable_entity
+
+  end
+end
+
 
     def destroy
       leave = Leave.find(params[:id])
@@ -330,7 +304,7 @@ module Api
 
         render json: {
           message: "Leave deleted successfully"
-        }, status: :ok
+        }
 
       else
 
@@ -341,7 +315,9 @@ module Api
       end
     end
 
+
     private
+
 
     def leave_params
       params.require(:leave).permit(
@@ -354,5 +330,6 @@ module Api
         :profileImage
       )
     end
+
   end
 end

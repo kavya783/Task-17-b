@@ -1,112 +1,106 @@
 module Api
   class NotificationsController < ApplicationController
-
     before_action :authenticate_request
 
+    def index
+      if current_company
 
-def index
-  if current_company
+        notifications = Notification
+          .where(company_id: current_company.id)
+          .where.not(notification_type: "welcome")
+          .preload(:company)
+          .order(created_at: :desc)
 
-    notifications = Notification
-      .where(company_id: current_company.id)
-      .where.not(notification_type: "welcome")
-      .preload(:company)
-      .order(created_at: :desc)
+      elsif current_user
 
-  elsif current_user
+        notifications = Notification
+          .where(user_id: current_user.id)
+          .where.not(notification_type: "welcome")
+          .preload(:user)
+          .order(created_at: :desc)
 
-    notifications = Notification
-      .where(user_id: current_user.id)
-      .where.not(notification_type: "welcome")
-      .preload(:user)
-      .order(created_at: :desc)
+      else
 
-  else
+        notifications = Notification.none
 
-    notifications = Notification.none
+      end
 
-  end
+      render json: notifications.map { |notification|
+        {
+          id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          notification_type: notification.notification_type,
+          read: notification.read,
+          created_at: notification.created_at,
 
-  render json: notifications.map { |notification|
-    {
-      id: notification.id,
-      title: notification.title,
-      message: notification.message,
-      notification_type: notification.notification_type,
-      read: notification.read,
-      created_at: notification.created_at,
-      user_name: notification.user&.name,
-      user_email: notification.user&.email
-    }
-  }
-end
+          # Leave notification details
+          leave_id: notification.leave_id,
+          action: notification.action,
+          applied_by: notification.applied_by,
 
+          user_name: notification.user&.name,
+          user_email: notification.user&.email
+        }
+      }
+    end
 
-   def welcome
+    def welcome
+      notification = nil
 
-  notification = nil
+      if current_company
 
-  if current_company
+        notification = Notification.find_by(
+          company_id: current_company.id,
+          notification_type: "welcome",
+          read: false
+        )
 
-    notification = Notification.find_by(
-      company_id: current_company.id,
-      notification_type: "welcome",
-      read: false
-    )
+      elsif current_user
 
+        notification = Notification.find_by(
+          user_id: current_user.id,
+          notification_type: "welcome",
+          read: false
+        )
 
-  elsif current_user
+      end
 
-    notification = Notification.find_by(
-      user_id: current_user.id,
-      notification_type: "welcome",
-      read: false
-    )
-
-  end
-
-
-  render json: notification
-
-end
-
+      render json: notification
+    end
 
     def mark_as_read
-
       notification = Notification.find(params[:id])
 
-      notification.update(read: true)
+      notification.update!(read: true)
 
       render json: {
-        message: "Notification  as read"
+        message: "Notification marked as read"
       }
-
     end
+
     def create
-  employee = User.find(params[:employee_id])
+      employee = User.find(params[:employee_id])
 
-  FirebaseNotificationService.send_notification(
-    employee.fcm_token,
-    params[:title],
-    params[:body]
-  )
+      FirebaseNotificationService.send_notification(
+        employee.fcm_token,
+        params[:title],
+        params[:body]
+      )
 
-  render json: {
-    message: "Notification sent successfully"
-  }
-end
+      render json: {
+        message: "Notification sent successfully"
+      }
+    end
+
     def destroy
-
       notification = Notification.find(params[:id])
 
-      notification.destroy
+      notification.destroy!
 
       render json: {
         message: "Notification deleted successfully"
       }
-
     end
-
   end
-  
 end
