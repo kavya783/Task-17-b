@@ -92,7 +92,9 @@ module Api
           end
 
         else
+
           Leave.none
+
         end
 
       result = leaves.map do |leave|
@@ -126,6 +128,7 @@ module Api
         error: "Failed to fetch leaves",
         message: e.message
       }, status: :internal_server_error
+
     end
 
 
@@ -155,15 +158,28 @@ module Api
 
         leave: {
           id: leave.id,
+
           employeename:
             user&.name || leave.employeename,
-          email: user&.email,
-          leaveType: leave.leaveType,
-          from_date: leave.from_date,
-          to_date: leave.to_date,
-          reason: leave.reason,
+
+          email:
+            user&.email,
+
+          leaveType:
+            leave.leaveType,
+
+          from_date:
+            leave.from_date,
+
+          to_date:
+            leave.to_date,
+
+          reason:
+            leave.reason,
+
           status:
             leave.status.presence || "pending",
+
           profile_image_url:
             profile_image_url
         }
@@ -178,6 +194,7 @@ module Api
       render json: {
         error: "Failed to fetch leave details"
       }, status: :internal_server_error
+
     end
 
 
@@ -191,14 +208,20 @@ module Api
         current_company&.id
 
       if leave.company_id.blank?
+
         render json: {
           error: "Company not found"
         }, status: :unprocessable_entity
 
         return
+
       end
 
       if leave.save
+
+        # =========================================
+        # EMPLOYEE APPLIES LEAVE
+        # =========================================
 
         if current_user&.role == "employee"
 
@@ -207,13 +230,6 @@ module Api
           )
 
           if hr
-
-            UserMailer
-              .leave_notification(
-                hr,
-                leave
-              )
-              .deliver_now
 
             LeaveNotificationJob.perform_later(
               hr.id,
@@ -225,6 +241,11 @@ module Api
 
           end
 
+
+        # =========================================
+        # HR APPLIES LEAVE
+        # =========================================
+
         elsif current_user&.role == "hr"
 
           company = Company.find_by(
@@ -233,28 +254,48 @@ module Api
 
           if company
 
+            # Create notification for company
+
             Notification.create!(
               company_id: company.id,
-              title: "New HR Leave Request",
+
+              title:
+                "New HR Leave Request",
+
               message:
                 "#{current_user.name} applied for leave",
-              notification_type: "leave",
+
+              notification_type:
+                "leave",
+
               read: false,
-              leave_id: leave.id,
-              action: "applied",
-              applied_by: "hr"
+
+              leave_id:
+                leave.id,
+
+              action:
+                "applied",
+
+              applied_by:
+                "hr"
             )
+
+
+            # Send Firebase notification
 
             FirebaseNotificationService
               .send_notification_to_company(
                 company.id,
+
                 "New HR Leave Request",
+
                 "#{current_user.name} applied for leave"
               )
 
           end
 
         end
+
 
         render json: {
           message: "Leave applied successfully",
@@ -283,6 +324,7 @@ module Api
         error: "Failed to create leave",
         message: e.message
       }, status: :internal_server_error
+
     end
 
 
@@ -295,22 +337,24 @@ module Api
 
         if employee
 
-          UserMailer
-            .leave_status_notification(
-              employee,
-              leave
-            )
-            .deliver_now
+          # =========================================
+          # SEND NOTIFICATION AFTER APPROVE / REJECT
+          # =========================================
 
           LeaveNotificationJob.perform_later(
             employee.id,
+
             "Leave #{leave.status}",
+
             "Your leave request has been #{leave.status}",
+
             leave.id,
+
             leave.status
           )
 
         end
+
 
         render json: {
           message: "Leave updated successfully",
@@ -341,6 +385,7 @@ module Api
         error: "Failed to update leave",
         message: e.message
       }, status: :internal_server_error
+
     end
 
 
@@ -376,10 +421,12 @@ module Api
       render json: {
         error: "Failed to delete leave"
       }, status: :internal_server_error
+
     end
 
 
     private
+
 
     def leave_params
       params.require(:leave).permit(
@@ -392,5 +439,6 @@ module Api
         :profileImage
       )
     end
+
   end
 end
