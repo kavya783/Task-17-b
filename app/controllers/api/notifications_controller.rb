@@ -4,25 +4,21 @@ module Api
 
     def index
       if current_company
-
         notifications = Notification
           .where(company_id: current_company.id)
           .where.not(notification_type: "welcome")
-          .preload(:company)
+          .preload(:company, :user)
           .order(created_at: :desc)
 
       elsif current_user
-
         notifications = Notification
           .where(user_id: current_user.id)
           .where.not(notification_type: "welcome")
-          .preload(:user)
+          .preload(:user, :company)
           .order(created_at: :desc)
 
       else
-
         notifications = Notification.none
-
       end
 
       render json: notifications.map { |notification|
@@ -49,7 +45,6 @@ module Api
       notification = nil
 
       if current_company
-
         notification = Notification.find_by(
           company_id: current_company.id,
           notification_type: "welcome",
@@ -57,13 +52,11 @@ module Api
         )
 
       elsif current_user
-
         notification = Notification.find_by(
           user_id: current_user.id,
           notification_type: "welcome",
           read: false
         )
-
       end
 
       render json: notification

@@ -92,9 +92,7 @@ module Api
           end
 
         else
-
           Leave.none
-
         end
 
       result = leaves.map do |leave|
@@ -112,11 +110,22 @@ module Api
         }
       end
 
-      Rails.logger.info(
-        "FINAL LEAVE RESPONSE: #{result.inspect}"
+      render json: result
+
+    rescue StandardError => e
+
+      Rails.logger.error(
+        "LEAVES INDEX ERROR: #{e.class} - #{e.message}"
       )
 
-      render json: result
+      Rails.logger.error(
+        e.backtrace.first(10).join("\n")
+      )
+
+      render json: {
+        error: "Failed to fetch leaves",
+        message: e.message
+      }, status: :internal_server_error
     end
 
 
@@ -135,10 +144,11 @@ module Api
 
       user = leave.leaveable
 
-      profile_image_url =
-        if user&.profile_image&.attached?
-          url_for(user.profile_image)
-        end
+      profile_image_url = nil
+
+      if user&.profile_image&.attached?
+        profile_image_url = url_for(user.profile_image)
+      end
 
       render json: {
         message: "Leave details fetched successfully",
@@ -158,6 +168,16 @@ module Api
             profile_image_url
         }
       }
+
+    rescue StandardError => e
+
+      Rails.logger.error(
+        "LEAVE SHOW ERROR: #{e.class} - #{e.message}"
+      )
+
+      render json: {
+        error: "Failed to fetch leave details"
+      }, status: :internal_server_error
     end
 
 
@@ -171,7 +191,6 @@ module Api
         current_company&.id
 
       if leave.company_id.blank?
-
         render json: {
           error: "Company not found"
         }, status: :unprocessable_entity
@@ -179,11 +198,9 @@ module Api
         return
       end
 
-
       if leave.save
 
-
-        if current_user.role == "employee"
+        if current_user&.role == "employee"
 
           hr = User.find_by(
             id: current_user.hr_id
@@ -208,10 +225,7 @@ module Api
 
           end
 
-
-   
-
-        elsif current_user.role == "hr"
+        elsif current_user&.role == "hr"
 
           company = Company.find_by(
             id: current_user.company_id
@@ -242,12 +256,10 @@ module Api
 
         end
 
-
         render json: {
           message: "Leave applied successfully",
           leave: leave
         }, status: :created
-
 
       else
 
@@ -256,45 +268,80 @@ module Api
         }, status: :unprocessable_entity
 
       end
+
+    rescue StandardError => e
+
+      Rails.logger.error(
+        "LEAVE CREATE ERROR: #{e.class} - #{e.message}"
+      )
+
+      Rails.logger.error(
+        e.backtrace.first(10).join("\n")
+      )
+
+      render json: {
+        error: "Failed to create leave",
+        message: e.message
+      }, status: :internal_server_error
     end
 
 
     def update
-  leave = Leave.find(params[:id])
+      leave = Leave.find(params[:id])
 
-  if leave.update(leave_params)
+      if leave.update(leave_params)
 
-    employee = leave.leaveable
+        employee = leave.leaveable
 
-    if employee
+        if employee
 
-      UserMailer
-        .leave_status_notification(employee, leave)
-        .deliver_now
+          UserMailer
+            .leave_status_notification(
+              employee,
+              leave
+            )
+            .deliver_now
 
-      LeaveNotificationJob.perform_later(
-        employee.id,
-        "Leave #{leave.status}",
-        "Your leave request has been #{leave.status}",
-        leave.id,
-        leave.status
+          LeaveNotificationJob.perform_later(
+            employee.id,
+            "Leave #{leave.status}",
+            "Your leave request has been #{leave.status}",
+            leave.id,
+            leave.status
+          )
+
+        end
+
+        render json: {
+          message: "Leave updated successfully",
+          leave: leave
+        }
+
+      else
+
+        render json: {
+          errors: leave.errors.full_messages
+        }, status: :unprocessable_entity
+
+      end
+
+    rescue ActiveRecord::RecordNotFound
+
+      render json: {
+        error: "Leave not found"
+      }, status: :not_found
+
+    rescue StandardError => e
+
+      Rails.logger.error(
+        "LEAVE UPDATE ERROR: #{e.class} - #{e.message}"
       )
 
+      render json: {
+        error: "Failed to update leave",
+        message: e.message
+      }, status: :internal_server_error
     end
-
-    render json: {
-      message: "Leave updated successfully",
-      leave: leave
-    }
-
-  else
-
-    render json: {
-      errors: leave.errors.full_messages
-    }, status: :unprocessable_entity
-
-  end
-end
 
 
     def destroy
@@ -313,11 +360,26 @@ end
         }, status: :unprocessable_entity
 
       end
+
+    rescue ActiveRecord::RecordNotFound
+
+      render json: {
+        error: "Leave not found"
+      }, status: :not_found
+
+    rescue StandardError => e
+
+      Rails.logger.error(
+        "LEAVE DELETE ERROR: #{e.class} - #{e.message}"
+      )
+
+      render json: {
+        error: "Failed to delete leave"
+      }, status: :internal_server_error
     end
 
 
     private
-
 
     def leave_params
       params.require(:leave).permit(
@@ -330,6 +392,5 @@ end
         :profileImage
       )
     end
-
   end
 end
