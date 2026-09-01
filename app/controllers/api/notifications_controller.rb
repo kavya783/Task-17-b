@@ -2,6 +2,7 @@ module Api
   class NotificationsController < ApplicationController
     before_action :authenticate_request
 
+    # GET /api/notifications
     def index
       if current_company
         notifications = Notification
@@ -29,18 +30,13 @@ module Api
           notification_type: notification.notification_type,
           read: notification.read,
           created_at: notification.created_at,
-
-          # Leave notification details
-          leave_id: notification.leave_id,
-          action: notification.action,
-          applied_by: notification.applied_by,
-
           user_name: notification.user&.name,
           user_email: notification.user&.email
         }
       }
     end
 
+    # GET /api/notifications/welcome
     def welcome
       notification = nil
 
@@ -62,6 +58,7 @@ module Api
       render json: notification
     end
 
+    # PATCH /api/notifications/:id/mark_as_read
     def mark_as_read
       notification = Notification.find(params[:id])
 
@@ -72,6 +69,7 @@ module Api
       }
     end
 
+    # POST /api/notifications
     def create
       employee = User.find(params[:employee_id])
 
@@ -86,6 +84,7 @@ module Api
       }
     end
 
+    # DELETE /api/notifications/:id
     def destroy
       notification = Notification.find(params[:id])
 
