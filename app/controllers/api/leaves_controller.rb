@@ -328,65 +328,55 @@ module Api
     end
 
 
-    def update
-      leave = Leave.find(params[:id])
+   def update
+  leave = Leave.find(params[:id])
 
-      if leave.update(leave_params)
+  old_status = leave.status
 
-        employee = leave.leaveable
+  if leave.update(leave_params)
 
-        if employee
+    new_status = leave.status
+    employee = leave.leaveable
 
-          # =========================================
-          # SEND NOTIFICATION AFTER APPROVE / REJECT
-          # =========================================
+    if employee &&
+       %w[approved rejected].include?(new_status) &&
+       old_status != new_status
 
-          LeaveNotificationJob.perform_later(
-            employee.id,
-
-            "Leave #{leave.status}",
-
-            "Your leave request has been #{leave.status}",
-
-            leave.id,
-
-            leave.status
-          )
-
-        end
-
-
-        render json: {
-          message: "Leave updated successfully",
-          leave: leave
-        }
-
-      else
-
-        render json: {
-          errors: leave.errors.full_messages
-        }, status: :unprocessable_entity
-
-      end
-
-    rescue ActiveRecord::RecordNotFound
-
-      render json: {
-        error: "Leave not found"
-      }, status: :not_found
-
-    rescue StandardError => e
-
-      Rails.logger.error(
-        "LEAVE UPDATE ERROR: #{e.class} - #{e.message}"
+      LeaveNotificationJob.perform_later(
+        employee.id,
+        "Leave #{new_status.capitalize}",
+        "Your leave request has been #{new_status}",
+        leave.id,
+        new_status
       )
-
-      render json: {
-        error: "Failed to update leave",
-        message: e.message
-      }, status: :internal_server_error
-
     end
+
+    render json: {
+      message: "Leave updated successfully",
+      leave: leave
+    }
+
+  else
+    render json: {
+      errors: leave.errors.full_messages
+    }, status: :unprocessable_entity
+  end
+
+rescue ActiveRecord::RecordNotFound
+  render json: {
+    error: "Leave not found"
+  }, status: :not_found
+
+rescue StandardError => e
+  Rails.logger.error(
+    "LEAVE UPDATE ERROR: #{e.class} - #{e.message}"
+  )
+
+  render json: {
+    error: "Failed to update leave",
+    message: e.message
+  }, status: :internal_server_error
+end
 
 
     def destroy

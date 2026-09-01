@@ -8,14 +8,14 @@ module Api
         notifications = Notification
           .where(company_id: current_company.id)
           .where.not(notification_type: "welcome")
-          .preload(:company, :user)
+          .includes(:company, :user, :leave)
           .order(created_at: :desc)
 
       elsif current_user
         notifications = Notification
           .where(user_id: current_user.id)
           .where.not(notification_type: "welcome")
-          .preload(:user, :company)
+          .includes(:user, :company, :leave)
           .order(created_at: :desc)
 
       else
@@ -23,6 +23,8 @@ module Api
       end
 
       render json: notifications.map { |notification|
+        leave = notification.leave
+
         {
           id: notification.id,
           title: notification.title,
@@ -30,10 +32,32 @@ module Api
           notification_type: notification.notification_type,
           read: notification.read,
           created_at: notification.created_at,
+
+          leave_id: notification.leave_id,
+          action: notification.action,
+          applied_by: notification.applied_by,
+
+          leave_status: leave&.status,
+
           user_name: notification.user&.name,
           user_email: notification.user&.email
         }
       }
+
+    rescue StandardError => e
+
+      Rails.logger.error(
+        "NOTIFICATIONS INDEX ERROR: #{e.class} - #{e.message}"
+      )
+
+      Rails.logger.error(
+        e.backtrace.first(10).join("\n")
+      )
+
+      render json: {
+        error: "Failed to fetch notifications",
+        message: e.message
+      }, status: :internal_server_error
     end
 
     # GET /api/notifications/welcome
@@ -67,6 +91,11 @@ module Api
       render json: {
         message: "Notification marked as read"
       }
+
+    rescue ActiveRecord::RecordNotFound
+      render json: {
+        error: "Notification not found"
+      }, status: :not_found
     end
 
     # POST /api/notifications
@@ -93,6 +122,11 @@ module Api
       render json: {
         message: "Notification deleted successfully"
       }
+
+    rescue ActiveRecord::RecordNotFound
+      render json: {
+        error: "Notification not found"
+      }, status: :not_found
     end
   end
 end

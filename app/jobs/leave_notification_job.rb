@@ -17,24 +17,13 @@ class LeaveNotificationJob < ApplicationJob
       return
     end
 
-    Rails.logger.info "USER FOUND: #{user.id}"
-    Rails.logger.info "USER EMAIL: #{user.email}"
-    Rails.logger.info "USER ROLE: #{user.role}"
-
-    # ---------------------------------------------------------
-    # Who originally applied the leave?
-    # ---------------------------------------------------------
-
     applied_by =
-      if user.role.to_s == "hr"
+      case user.role.to_s
+      when "hr"
         "hr"
-      elsif user.role.to_s == "employee"
+      when "employee"
         "employee"
       end
-
-    # ---------------------------------------------------------
-    # Create notification in database
-    # ---------------------------------------------------------
 
     notification = Notification.create!(
       user_id: user.id,
@@ -47,15 +36,7 @@ class LeaveNotificationJob < ApplicationJob
       applied_by: applied_by
     )
 
-    Rails.logger.info "DB NOTIFICATION CREATED"
-    Rails.logger.info "NOTIFICATION ID: #{notification.id}"
-    Rails.logger.info "LEAVE ID: #{notification.leave_id}"
-    Rails.logger.info "ACTION: #{notification.action}"
-    Rails.logger.info "APPLIED BY: #{notification.applied_by}"
-
-    # ---------------------------------------------------------
-    # Send push notification if user is logged in
-    # ---------------------------------------------------------
+    Rails.logger.info "NOTIFICATION CREATED: #{notification.id}"
 
     device_token = DeviceToken.find_by(
       user_id: user.id,
@@ -63,23 +44,15 @@ class LeaveNotificationJob < ApplicationJob
     )
 
     if device_token.present?
-
-      Rails.logger.info "ACTIVE DEVICE TOKEN FOUND"
-      Rails.logger.info "TOKEN ID: #{device_token.id}"
-
       FirebaseNotificationService.send_notification(
         device_token.token,
         title,
         message
       )
 
-      Rails.logger.info "FIREBASE SEND METHOD CALLED"
-
+      Rails.logger.info "FIREBASE NOTIFICATION SENT"
     else
-
-      Rails.logger.info "USER IS NOT LOGGED IN"
-      Rails.logger.info "PUSH NOTIFICATION NOT SENT"
-
+      Rails.logger.info "NO ACTIVE DEVICE TOKEN"
     end
 
     Rails.logger.info "LEAVE NOTIFICATION JOB COMPLETED"

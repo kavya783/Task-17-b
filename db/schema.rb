@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_19_054607) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_01_101849) do
   create_table "active_admin_comments", force: :cascade do |t|
     t.integer "author_id"
     t.string "author_type"
@@ -76,6 +76,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_19_054607) do
   end
 
   create_table "device_tokens", force: :cascade do |t|
+    t.boolean "active"
     t.integer "company_id"
     t.datetime "created_at", null: false
     t.string "token"
@@ -112,14 +113,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_19_054607) do
   end
 
   create_table "notifications", force: :cascade do |t|
+    t.string "action"
+    t.string "applied_by"
     t.integer "company_id"
     t.datetime "created_at", null: false
+    t.integer "leave_id"
     t.text "message"
     t.string "notification_type"
     t.boolean "read", default: false
     t.string "title"
     t.datetime "updated_at", null: false
     t.integer "user_id"
+    t.index ["leave_id"], name: "index_notifications_on_leave_id"
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
@@ -141,5 +146,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_19_054607) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "device_tokens", "companies"
   add_foreign_key "device_tokens", "users"
+  add_foreign_key "notifications", "leaves", column: "leave_id"
   add_foreign_key "notifications", "users"
 end
